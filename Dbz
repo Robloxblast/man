@@ -153,3 +153,171 @@ Tab:CreateToggle({
         end
     end,
 })
+
+local autofight = false
+local selectedCategory = 1
+local selectedNpc = 1
+
+local fights = {
+	[1] = 4,
+	[2] = 7,
+	[3] = 5,
+	[4] = 4,
+	[5] = 5,
+	[6] = 6,
+	[7] = 6,
+	[8] = 8,
+	[9] = 4,
+	[10] = 6,
+	[11] = 4,
+	[12] = 5,
+	[13] = 5
+}
+
+local npcLists = {
+	[1] = {"NPC 1","NPC 2","NPC 3","NPC 4"},
+	[2] = {"NPC 1","NPC 2","NPC 3","NPC 4","NPC 5","NPC 6","NPC 7"},
+	[3] = {"NPC 1","NPC 2","NPC 3","NPC 4","NPC 5"},
+	[4] = {"NPC 1","NPC 2","NPC 3","NPC 4"},
+	[5] = {"NPC 1","NPC 2","NPC 3","NPC 4","NPC 5"},
+	[6] = {"NPC 1","NPC 2","NPC 3","NPC 4","NPC 5","NPC 6"},
+	[7] = {"NPC 1","NPC 2","NPC 3","NPC 4","NPC 5","NPC 6"},
+	[8] = {"NPC 1","NPC 2","NPC 3","NPC 4","NPC 5","NPC 6","NPC 7","NPC 8"},
+	[9] = {"NPC 1","NPC 2","NPC 3","NPC 4"},
+	[10] = {"NPC 1","NPC 2","NPC 3","NPC 4","NPC 5","NPC 6"},
+	[11] = {"NPC 1","NPC 2","NPC 3","NPC 4"},
+	[12] = {"NPC 1","NPC 2","NPC 3","NPC 4","NPC 5"},
+	[13] = {"NPC 1","NPC 2","NPC 3","NPC 4","NPC 5"}
+}
+
+local npcDropdown
+
+local categoryDropdown = Tab:CreateDropdown({
+	Name = "Select Category",
+	Options = {
+		"Category 1","Category 2","Category 3","Category 4","Category 5",
+		"Category 6","Category 7","Category 8","Category 9","Category 10",
+		"Category 11","Category 12","Category 13"
+	},
+	CurrentOption = {"Category 1"},
+	MultipleOptions = false,
+	Flag = "FightCategory",
+	Callback = function(opt)
+		selectedCategory = tonumber(string.match(opt[1], "%d+"))
+		selectedNpc = 1
+		npcDropdown:Refresh(npcLists[selectedCategory])
+	end,
+})
+
+npcDropdown = Tab:CreateDropdown({
+	Name = "Select NPC",
+	Options = npcLists[1],
+	CurrentOption = {"NPC 1"},
+	MultipleOptions = false,
+	Flag = "NpcSelect",
+	Callback = function(opt)
+		selectedNpc = tonumber(string.match(opt[1], "%d+"))
+	end,
+})
+
+Tab:CreateToggle({
+	Name = "Auto Fight",
+	CurrentValue = false,
+	Callback = function(v)
+		autofight = v
+		
+		task.spawn(function()
+			while autofight do
+				local args = {
+					selectedCategory,
+					selectedNpc
+				}
+				
+				game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("Fight"):FireServer(unpack(args))
+				
+				task.wait()
+			end
+		end)
+	end
+})
+
+local infdragon = false
+local autowish = false
+local wish = 6
+
+local Dropdown = Tab:CreateDropdown({
+	Name = "Wish Reward",
+	Options = {
+		"Power Boost",
+		"Immortality",
+		"Race Reroll",
+		"Wealth",
+		"Unlock Potential",
+		"Rebirth Token"
+	},
+	CurrentOption = {"Rebirth Token"},
+	MultipleOptions = false,
+	Flag = "WishSelect",
+	Callback = function(opt)
+		local map = {
+			["Power Boost"] = 1,
+			["Immortality"] = 2,
+			["Race Reroll"] = 3,
+			["Wealth"] = 4,
+			["Unlock Potential"] = 5,
+			["Rebirth Token"] = 6
+		}
+		wish = map[opt[1]]
+	end,
+})
+
+Tab:CreateToggle({
+	Name = "Infinite Dragonball",
+	CurrentValue = false,
+	Callback = function(v)
+		infdragon = v
+		
+		task.spawn(function()
+			while infdragon do
+				game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("Fight"):FireServer(1,1)
+				task.wait()
+			end
+		end)
+	end
+})
+
+Tab:CreateToggle({
+	Name = "Auto Wish",
+	CurrentValue = false,
+	Callback = function(v)
+		autowish = v
+		
+		task.spawn(function()
+			while autowish do
+				game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("MakeWish"):FireServer(wish)
+				task.wait()
+			end
+		end)
+	end
+})
+
+local Paragraph = Tab:CreateParagraph({Title = "REMINDER!!! (MUST READ)", Content = "THE AUTO POWER INCREASE WILL SPEND YOUR YEN SO YOU MUST NEED ALOT OF YEN IF YOU WANT ALOT OF YEN USE THE INFINITE DRAGONBALL AND AUTOWISH OR AUTO FIGHT THE FINAL NPC FOR ALOT OF MONEY"})
+local autopower = false
+
+Tab:CreateToggle({
+	Name = "Auto Power Increase",
+	CurrentValue = false,
+	Callback = function(v)
+		autopower = v
+		
+		task.spawn(function()
+			while autopower do
+				game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("BuyItem"):FireServer("Ultra Divine Water")
+				
+				game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("UseItem"):FireServer("Ultra Divine Water")
+				
+				task.wait()
+			end
+		end)
+	end
+})
