@@ -53,7 +53,7 @@ local Dropdown = Tab:CreateDropdown({
 local Button = Tab:CreateButton({
    Name = "Execute Script",
    Callback = function()
-      if gam == "Option 1" then
+      if gam == "Dragon Ball Incremental" then
          loadstring(game:HttpGet("https://raw.githubusercontent.com/Robloxblast/man/refs/heads/main/Dbz"))()
       elseif gam == "Soon" then
          print(2)
