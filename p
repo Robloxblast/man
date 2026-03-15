@@ -37,12 +37,12 @@ local Window = Rayfield:CreateWindow({
 })
 
 local Tab = Window:CreateTab("Main", "rewind")
-local gam = "Option 1"
+local gam = "Dragon Ball Incremental"
 
 local Dropdown = Tab:CreateDropdown({
    Name = "Choose what script to execute",
-   Options = {"Option 1", "Option 2"},
-   CurrentOption = {"Option 1"},
+   Options = {"Dragon Ball Incremental", "Soon"},
+   CurrentOption = {"Dragon Ball Incremental"},
    MultipleOptions = false,
    Flag = "Dropdown1",
    Callback = function(Options)
@@ -54,8 +54,8 @@ local Button = Tab:CreateButton({
    Name = "Execute Script",
    Callback = function()
       if gam == "Option 1" then
-         print(1)
-      elseif gam == "Option 2" then
+         loadstring(game:HttpGet("https://raw.githubusercontent.com/Robloxblast/man/refs/heads/main/Dbz"))()
+      elseif gam == "Soon" then
          print(2)
       end
    end,
