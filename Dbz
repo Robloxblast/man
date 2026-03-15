@@ -1,0 +1,155 @@
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+local Window = Rayfield:CreateWindow({
+   Name = "Xarxynth Hub",
+   Icon = 0, -- Icon in Topbar. Can use Lucide Icons (string) or Roblox Image (number). 0 to use no icon (default).
+   LoadingTitle = "Loading Script Please Wait...",
+   LoadingSubtitle = "by Xarxynth Hub",
+   ShowText = "Rayfield", -- for mobile users to unhide Rayfield, change if you'd like
+   Theme = "Default", -- Check https://docs.sirius.menu/rayfield/configuration/themes
+
+   ToggleUIKeybind = "N", -- The keybind to toggle the UI visibility (string like "K" or Enum.KeyCode)
+
+   DisableRayfieldPrompts = false,
+   DisableBuildWarnings = false, -- Prevents Rayfield from emitting warnings when the script has a version mismatch with the interface.
+
+   ConfigurationSaving = {
+      Enabled = true,
+      FolderName = nil, -- Create a custom folder for your hub/game
+      FileName = "Big Hub"
+   },
+
+   Discord = {
+      Enabled = false, -- Prompt the user to join your Discord server if their executor supports it
+      Invite = "noinvitelink", -- The Discord invite code, do not include Discord.gg/. E.g. Discord.gg/ ABCD would be ABCD
+      RememberJoins = true -- Set this to false to make them join the Discord every time they load it up
+   },
+
+   KeySystem = false, -- Set this to true to use our key system
+   KeySettings = {
+      Title = "Untitled",
+      Subtitle = "Key System",
+      Note = "No method of obtaining the key is provided", -- Use this to tell the user how to get a key
+      FileName = "Key", -- It is recommended to use something unique, as other scripts using Rayfield may overwrite your key file
+      SaveKey = true, -- The user's key will be saved, but if you change the key, they will be unable to use your script
+      GrabKeyFromSite = false, -- If this is true, set Key below to the RAW site you would like Rayfield to get the key from
+      Key = {"Hello"} -- List of keys that the system will accept, can be RAW file links (pastebin, github, etc.) or simple strings ("hello", "key22")
+   }
+})
+
+local Tab = Window:CreateTab("Main", "rewind")
+
+local players = game:GetService("Players")
+local localPlayer = players.LocalPlayer
+local gui = localPlayer.PlayerGui.DBZGui.MainBG.Content.Page3
+local scrollingFrame = gui:GetChildren()[2].ScrollingFrame
+
+local order = {
+    "Meditation", "Pushups", "Image Training", "Gravity 10x", "Weighted Clothing",
+    "Gravity 100x", "Kami's Lookout", "Time Chamber", "Gravity 300x", "King Kai's Planet",
+    "Gravity 500x", "Supreme Kai World", "Beeru's Planet", "Whis Training", "Gravity 1000x",
+    "Grand Priest Dojo", "UI Training", "Angels' Realm", "Zeno's Void"
+}
+
+local toggle = false
+local currentTrainingName = nil
+
+local function fireButton(btn)
+    for _,v in pairs(getconnections(btn.MouseButton1Click)) do
+        v:Fire()
+    end
+end
+
+local function getBestTraining()
+    local bestIndex = 0
+    local bestFrame = nil
+    local bestButton = nil
+    local bestName = nil
+
+    for _, frame in pairs(scrollingFrame:GetChildren()) do
+        if frame:IsA("Frame") then
+            local textLabel = frame:FindFirstChildWhichIsA("TextLabel")
+            local button = frame:FindFirstChildWhichIsA("TextButton")
+            if textLabel and button then
+                local index = table.find(order, textLabel.Text)
+                if index and index > bestIndex then
+                    bestIndex = index
+                    bestFrame = frame
+                    bestButton = button
+                    bestName = textLabel.Text
+                end
+            end
+        end
+    end
+
+    return bestName, bestButton
+end
+
+local function switchTraining()
+    local bestName, bestButton = getBestTraining()
+    if bestName and bestName ~= currentTrainingName then
+        currentTrainingName = bestName
+        fireButton(bestButton)
+    end
+end
+
+-- Toggle setup
+local Toggle = Tab:CreateToggle({
+    Name = "Auto Train Best",
+    CurrentValue = false,
+    Flag = "AutoTrainBest",
+    Callback = function(value)
+        toggle = value
+        if toggle then
+            while toggle do
+                switchTraining()
+                task.wait(1)
+            end
+        end
+    end,
+})
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local GUI = LocalPlayer.PlayerGui.DBZGui.MainBG.Content.Page3
+
+local trainPunchToggle = false
+
+-- Function to click a button
+local function click(btn)
+    for _, v in pairs(getconnections(btn.MouseButton1Click)) do
+        v:Fire()
+    end
+end
+
+-- Auto Train Punch Toggle
+Tab:CreateToggle({
+    Name = "Auto Train Punch",
+    CurrentValue = false,
+    Flag = "AutoTrainPunch",
+    Callback = function(Value)
+        trainPunchToggle = Value
+
+        if trainPunchToggle then
+            task.spawn(function()
+                while trainPunchToggle do
+                    local btn = nil
+                    local scrollingFrame = GUI.Frame.ScrollingFrame
+
+                    -- dynamically find the TrainPunch button
+                    for _, v in pairs(scrollingFrame:GetDescendants()) do
+                        if v:IsA("TextButton") and v.Name == "TrainPunch" then
+                            btn = v
+                            break
+                        end
+                    end
+
+                    if btn then
+                        click(btn)
+                    end
+
+                    task.wait()
+                end
+            end)
+        end
+    end,
+})
