@@ -1,0 +1,316 @@
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+local Window = Rayfield:CreateWindow({
+   Name = "Xarxynth Hub",
+   Icon = 0, -- Icon in Topbar. Can use Lucide Icons (string) or Roblox Image (number). 0 to use no icon (default).
+   LoadingTitle = "Loading script please wait...",
+   LoadingSubtitle = "Made by Xarxynth Hub",
+   ShowText = "Rayfield", -- for mobile users to unhide rayfield, change if you'd like
+   Theme = "Default", -- Check https://docs.sirius.menu/rayfield/configuration/themes
+
+   ToggleUIKeybind = "K", -- The keybind to toggle the UI visibility (string like "K" or Enum.KeyCode)
+
+   DisableRayfieldPrompts = false,
+   DisableBuildWarnings = false, -- Prevents Rayfield from warning when the script has a version mismatch with the interface
+
+   ConfigurationSaving = {
+      Enabled = true,
+      FolderName = nil, -- Create a custom folder for your hub/game
+      FileName = "Big Hub"
+   },
+
+   Discord = {
+      Enabled = false, -- Prompt the user to join your Discord server if their executor supports it
+      Invite = "noinvitelink", -- The Discord invite code, do not include discord.gg/. E.g. discord.gg/ ABCD would be ABCD
+      RememberJoins = true -- Set this to false to make them join the discord every time they load it up
+   },
+
+   KeySystem = false, -- Set this to true to use our key system
+   KeySettings = {
+      Title = "Untitled",
+      Subtitle = "Key System",
+      Note = "No method of obtaining the key is provided", -- Use this to tell the user how to get a key
+      FileName = "Key", -- It is recommended to use something unique as other scripts using Rayfield may overwrite your key file
+      SaveKey = true, -- The user's key will be saved, but if you change the key, they will be unable to use your script
+      GrabKeyFromSite = false, -- If this is true, set Key below to the RAW site you would like Rayfield to get the key from
+      Key = {"Hello"} -- List of keys that will be accepted by the system, can be RAW file links (pastebin, github etc) or simple strings ("hello","key22")
+   }
+})
+
+
+local Tab = Window:CreateTab("Main", 4483362458) -- Title, Image
+
+
+local active = true
+local trueActive = true
+local reachType = "Sphere"
+local dmgEnabled = true
+local visualizerEnabled = false
+local notifyProximity = false
+local notifyFrequency = 3 -- Default frequency in seconds
+
+local visualizer = Instance.new("Part")
+visualizer.BrickColor = BrickColor.Red()
+visualizer.Transparency = 0.6
+visualizer.Anchored = true
+visualizer.CanCollide = false
+visualizer.Size = Vector3.new(0.5, 0.5, 0.5)
+visualizer.BottomSurface = Enum.SurfaceType.Smooth
+visualizer.TopSurface = Enum.SurfaceType.Smooth
+
+local plr = game.Players.LocalPlayer
+
+local reachSize = 10 -- Default reach size
+local detectionRadius = 10 -- Default detection radius
+
+local lastNotificationTime = 0
+
+local function onHit(hit, handle)
+    local victim = hit.Parent:FindFirstChildOfClass("Humanoid")
+    if victim and victim.Parent.Name ~= game.Players.LocalPlayer.Name then
+        if dmgEnabled then
+            for _, v in pairs(hit.Parent:GetChildren()) do
+                if v:IsA("Part") then
+                    firetouchinterest(v, handle, 0)
+                    firetouchinterest(v, handle, 1)
+                end
+            end
+        else
+            firetouchinterest(hit, handle, 0)
+            firetouchinterest(hit, handle, 1)
+        end
+    end
+end
+
+local function getWhiteList()
+    local wl = {}
+    for _, v in pairs(game.Players:GetPlayers()) do
+        if v ~= plr then
+            local char = v.Character
+            if char then
+                for _, q in pairs(char:GetChildren()) do
+                    if q:IsA("Part") then
+                        table.insert(wl, q)
+                    end
+                end
+            end
+        end
+    end
+    return wl
+end
+
+local function notifyPlayer(name)
+Rayfield:Notify({
+   Title = "Player Nearby!",
+   Content = name .. " is near you!",
+   Duration = 4,
+   Image = 4483362458,
+})
+end
+
+game:GetService("UserInputService").InputBegan:Connect(function(inp, gpe)
+    if gpe then return end
+    if inp.KeyCode == Enum.KeyCode.H then
+        visualizerEnabled = not visualizerEnabled
+        if visualizerEnabled then
+            visualizer.Parent = workspace
+        else
+            visualizer.Parent = nil
+        end
+    end
+end)
+
+game:GetService("RunService").RenderStepped:Connect(function()
+    if not active or not trueActive then return end
+    local s = plr.Character and plr.Character:FindFirstChildOfClass("Tool")
+    if not s then
+        visualizer.Parent = nil
+    end
+    if s then
+        local handle = s:FindFirstChild("Handle") or s:FindFirstChildOfClass("Part")
+        if handle then
+            if visualizerEnabled then
+                visualizer.Parent = workspace
+            else
+                visualizer.Parent = nil
+            end
+            if reachType == "Sphere" then
+                visualizer.Shape = Enum.PartType.Ball
+                visualizer.Size = Vector3.new(reachSize, reachSize, reachSize)
+                visualizer.CFrame = handle.CFrame
+                for _, v in pairs(game.Players:GetPlayers()) do
+                    local hrp = v.Character and v.Character:FindFirstChild("HumanoidRootPart")
+                    if hrp and handle then
+                        local mag = (hrp.Position - handle.Position).magnitude
+                        if mag <= reachSize then
+                            onHit(hrp, handle)
+                        end
+                    end
+                end
+            elseif reachType == "Box" then
+                visualizer.Shape = Enum.PartType.Block
+                visualizer.Size = Vector3.new(reachSize, reachSize, reachSize)
+                visualizer.CFrame = handle.CFrame
+                for _, v in pairs(game.Players:GetPlayers()) do
+                    local hrp = v.Character and v.Character:FindFirstChild("HumanoidRootPart")
+                    if hrp and handle then
+                        local mag = (hrp.Position - handle.Position).magnitude
+                        if mag <= reachSize then
+                            onHit(hrp, handle)
+                        end
+                    end
+                end
+            elseif reachType == "Line" then
+                local origin = (handle.CFrame * CFrame.new(0, 0, -2)).p
+                local ray = Ray.new(origin, handle.CFrame.lookVector * -reachSize)
+                local p, pos = workspace:FindPartOnRayWithWhitelist(ray, getWhiteList())
+                visualizer.Shape = Enum.PartType.Block
+                visualizer.Size = Vector3.new(1, 0.8, reachSize)
+                visualizer.CFrame = handle.CFrame * CFrame.new(0, 0, (reachSize / 2) + 2)
+                if p then
+                    onHit(p, handle)
+                else
+                    for _, v in pairs(handle:GetTouchingParts()) do
+                        onHit(v, handle)
+                    end
+                end
+            end
+        end
+    end
+
+    if notifyProximity then
+        local currentTime = tick()
+        if currentTime - lastNotificationTime >= notifyFrequency then
+            for _, player in pairs(game.Players:GetPlayers()) do
+                if player ~= plr then
+                    local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                    if hrp then
+                        local mag = (hrp.Position - plr.Character.HumanoidRootPart.Position).magnitude
+                        if mag <= detectionRadius then
+                            notifyPlayer(player.Name)
+                            lastNotificationTime = currentTime
+                        end
+                    end
+                end
+            end
+        end
+    end
+end)
+
+
+local Input = Tab:CreateInput({
+   Name = "Change Reach Size",
+   CurrentValue = "10",
+   PlaceholderText = "Size",
+   RemoveTextAfterFocusLost = false,
+   Flag = "Input1",
+   Callback = function(Value)
+        local newSize = tonumber(Value)
+        if newSize then
+            reachSize = newSize
+            print("Reach Size changed to:", reachSize)
+        else
+            warn("Invalid input for reach size")
+        end
+   end,
+})
+
+local Input = Tab:CreateInput({
+   Name = "Set Player Detection Radius",
+   CurrentValue = "10",
+   PlaceholderText = "Size",
+   RemoveTextAfterFocusLost = false,
+   Flag = "Input2",
+   Callback = function(Value)
+        local newRadius = tonumber(Value)
+        if newRadius then
+            detectionRadius = newRadius
+            print("Player Detection Radius set to:", detectionRadius)
+        else
+            warn("Invalid input for player detection radius")
+        end
+   end,
+})
+
+
+local Input = Tab:CreateInput({
+   Name = "Set Transparency Of Visualizer",
+   CurrentValue = "0.6",
+   PlaceholderText = "Trans",
+   RemoveTextAfterFocusLost = false,
+   Flag = "Input1",
+   Callback = function(Value)
+        local newTransparency = tonumber(Value)
+        if newTransparency then
+            visualizer.Transparency = newTransparency
+            print("Visualizer transparency set to:", newTransparency)
+        else
+            warn("Invalid input for transparency")
+        end
+   end,
+})
+
+
+-- Button to turn on the visualizer
+local Button = Tab:CreateButton({
+    Name = "Turn On Visualizer",
+    Callback = function()
+        visualizerEnabled = true
+        visualizer.Parent = workspace
+        print("Visualizer turned on")
+    end,    
+})
+
+-- Button to turn off the visualizer
+local Button = Tab:CreateButton({
+    Name = "Turn Off Visualizer",
+    Callback = function()
+        visualizerEnabled = false
+        visualizer.Parent = nil
+        print("Visualizer turned off")
+    end,   
+})
+
+-- Toggle to enable/disable player proximity notifications
+local Toggle = Tab:CreateToggle({
+    Name = "Notify if a Player is near you",
+   CurrentValue = false,
+      Flag = "Toggle1", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
+    Callback = function(Value)
+        notifyProximity = Value
+        print("Notify if a Player is near you:", notifyProximity)
+    end,    
+})
+
+-- Dropdown for selecting reach shape
+local Dropdown = Tab:CreateDropdown({
+    Name = "Select Shape",
+    Options = {"Sphere", "Box", "Line"},
+    CurrentOption = {"Sphere"},
+    MultipleOptions = false,
+    Flag = "Dropdown1", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
+    Callback = function(Value)
+        reachType = Value
+        print("Reach Shape changed to:", reachType)
+    end,    
+})
+
+-- Dropdown for selecting color
+local Dropdown = Tab:CreateDropdown({
+    Name = "Select Color",
+    Options = {"Red", "Blue", "Yellow", "White"},
+    CurrentOption = "Red",
+    MultipleOptions = false,
+    Flag = "Dropdown1", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
+    Callback = function(Value)
+        if Value == "Red" then
+            visualizer.BrickColor = BrickColor.new("Bright red")
+        elseif Value == "Blue" then
+            visualizer.BrickColor = BrickColor.new("Bright blue")
+        elseif Value == "Yellow" then
+            visualizer.BrickColor = BrickColor.new("Bright yellow")
+        elseif Value == "White" then
+            visualizer.BrickColor = BrickColor.new("White")
+        end
+        print("Visualizer color set to:", Value)
+    end,    
+})
