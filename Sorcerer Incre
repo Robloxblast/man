@@ -1,0 +1,197 @@
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+local Window = Rayfield:CreateWindow({
+   Name = "Xarxynth Hub",
+   Icon = 0, -- Icon in Topbar. Can use Lucide Icons (string) or Roblox Image (number). 0 to use no icon (default).
+   LoadingTitle = "Loading Script Please Wait...",
+   LoadingSubtitle = "by Xarxynth Hub",
+   ShowText = "Rayfield", -- for mobile users to unhide Rayfield, change if you'd like
+   Theme = "Default", -- Check https://docs.sirius.menu/rayfield/configuration/themes
+
+   ToggleUIKeybind = "N", -- The keybind to toggle the UI visibility (string like "K" or Enum.KeyCode)
+
+   DisableRayfieldPrompts = false,
+   DisableBuildWarnings = false, -- Prevents Rayfield from emitting warnings when the script has a version mismatch with the interface.
+
+   ConfigurationSaving = {
+      Enabled = true,
+      FolderName = nil, -- Create a custom folder for your hub/game
+      FileName = "Big Hub"
+   },
+
+   Discord = {
+      Enabled = false, -- Prompt the user to join your Discord server if their executor supports it
+      Invite = "noinvitelink", -- The Discord invite code, do not include Discord.gg/. E.g. Discord.gg/ ABCD would be ABCD
+      RememberJoins = true -- Set this to false to make them join the Discord every time they load it up
+   },
+
+   KeySystem = false, -- Set this to true to use our key system
+   KeySettings = {
+      Title = "Untitled",
+      Subtitle = "Key System",
+      Note = "No method of obtaining the key is provided", -- Use this to tell the user how to get a key
+      FileName = "Key", -- It is recommended to use something unique, as other scripts using Rayfield may overwrite your key file
+      SaveKey = true, -- The user's key will be saved, but if you change the key, they will be unable to use your script
+      GrabKeyFromSite = false, -- If this is true, set Key below to the RAW site you would like Rayfield to get the key from
+      Key = {"Hello"} -- List of keys that the system will accept, can be RAW file links (pastebin, github, etc.) or simple strings ("hello", "key22")
+   }
+})
+
+local Tab = Window:CreateTab("Main", "rewind")
+
+local workType = "odd_jobs"
+local autoWork = false
+
+
+local Toggle = Tab:CreateToggle({
+   Name = "Auto Work",
+   CurrentValue = false,
+   Flag = "AutoWorkToggle",
+   Callback = function(Value)
+      autoWork = Value
+
+      while autoWork do
+         local args = {
+            "DoWork",
+            workType
+         }
+
+         game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvents"):WaitForChild("Req"):FireServer(unpack(args))
+         task.wait(1)
+      end
+   end,
+})
+
+
+
+local Dropdown = Tab:CreateDropdown({
+   Name = "Work Type",
+   Options = {
+      "Odd Jobs",
+      "Cursed Object Patrol",
+      "Curse Exorcism",
+      "Cursed Relic Hunts",
+      "Jujutsu Missions",
+      "Special Grade Hunts",
+      "Elder Contracts",
+      "Culling Game Rounds"
+   },
+   CurrentOption = {"Odd Jobs"},
+   MultipleOptions = false,
+   Flag = "WorkDropdown",
+   Callback = function(Options)
+      local v = Options[1]
+
+      if v == "Odd Jobs" then
+         workType = "odd_jobs"
+      elseif v == "Cursed Object Patrol" then
+         workType = "patrol"
+      elseif v == "Curse Exorcism" then
+         workType = "exorcism"
+      elseif v == "Cursed Relic Hunts" then
+         workType = "relic_hunt"
+      elseif v == "Jujutsu Missions" then
+         workType = "mission"
+      elseif v == "Special Grade Hunts" then
+         workType = "grade_hunt"
+      elseif v == "Elder Contracts" then
+         workType = "contract"
+      elseif v == "Culling Game Rounds" then
+         workType = "game_round"
+      end
+   end,
+})
+
+
+local autoTrain = false
+local trainOptions = {
+   Level = false,
+   Energy = false
+}
+
+local Toggle = Tab:CreateToggle({
+   Name = "Auto Train",
+   CurrentValue = false,
+   Flag = "AutoTrainToggle",
+   Callback = function(Value)
+      autoTrain = Value
+
+      while autoTrain do
+         if trainOptions.Level then
+            local args = {
+               "TrainLevel"
+            }
+            game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvents"):WaitForChild("Req"):FireServer(unpack(args))
+         end
+
+         if trainOptions.Energy then
+            local args = {
+               "TrainEnergy"
+            }
+            game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvents"):WaitForChild("Req"):FireServer(unpack(args))
+         end
+
+         task.wait(0.05)
+      end
+   end,
+})
+
+local Dropdown = Tab:CreateDropdown({
+   Name = "Train Options",
+   Options = {"Level","Energy"},
+   CurrentOption = {},
+   MultipleOptions = true,
+   Flag = "TrainDropdown",
+   Callback = function(Options)
+      trainOptions.Level = false
+      trainOptions.Energy = false
+
+      for _,v in pairs(Options) do
+         if v == "Level" then
+            trainOptions.Level = true
+         elseif v == "Energy" then
+            trainOptions.Energy = true
+         end
+      end
+   end,
+})
+
+
+local autoReinc = false
+
+local Toggle = Tab:CreateToggle({
+   Name = "Auto Reincarnation",
+   CurrentValue = false,
+   Flag = "AutoReincarnation",
+   Callback = function(Value)
+      autoReinc = Value
+
+      while autoReinc do
+         local args = {
+            "Reincarnation"
+         }
+
+         game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvents"):WaitForChild("Req"):FireServer(unpack(args))
+         task.wait(0.5)
+      end
+   end,
+})
+
+local autoExcavation = false
+
+local Toggle = Tab:CreateToggle({
+   Name = "Auto Excavation",
+   CurrentValue = false,
+   Flag = "AutoExcavation",
+   Callback = function(Value)
+      autoExcavation = Value
+
+      while autoExcavation do
+         local args = {
+            "ExcavationDig"
+         }
+
+         game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvents"):WaitForChild("Req"):FireServer(unpack(args))
+         task.wait(0.05)
+      end
+   end,
+})
