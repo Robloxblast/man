@@ -60,7 +60,7 @@ local Button = Tab:CreateButton({
          elseif gam == "Steal Time" then
          loadstring(game:HttpGet("https://raw.githubusercontent.com/Robloxblast/man/refs/heads/main/Uni%20Steal"))()
          elseif gam == "Highschool Hoops" then
-         loadstring(game:HttpGet("https://raw.githubusercontent.com/Robloxblast/man/refs/heads/main/Hsh"))()
+         loadstring(game:HttpGet("https://raw.githubusercontent.com/Robloxblast/man/refs/heads/main/Hsh%20paid"))()
       end
    end,
 })
