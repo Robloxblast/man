@@ -1,0 +1,631 @@
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+local Window = Rayfield:CreateWindow({
+   Name = "Highschool Hoops",
+   Icon = 0, -- Icon in Topbar. Can use Lucide Icons (string) or Roblox Image (number). 0 to use no icon (default).
+   LoadingTitle = "Loading Script Please Wait...",
+   LoadingSubtitle = "Made by Xarxynth Hub",
+   ShowText = "HSH", -- for mobile users to unhide rayfield, change if you'd like
+   Theme = "Default", -- Check https://docs.sirius.menu/rayfield/configuration/themes
+
+   ToggleUIKeybind = "N", -- The keybind to toggle the UI visibility (string like "K" or Enum.KeyCode)
+
+   DisableRayfieldPrompts = false,
+   DisableBuildWarnings = false, -- Prevents Rayfield from warning when the script has a version mismatch with the interface
+
+   ConfigurationSaving = {
+      Enabled = true,
+      FolderName = nil, -- Create a custom folder for your hub/game
+      FileName = "Big Hub"
+   },
+
+   Discord = {
+      Enabled = false, -- Prompt the user to join your Discord server if their executor supports it
+      Invite = "noinvitelink", -- The Discord invite code, do not include discord.gg/. E.g. discord.gg/ ABCD would be ABCD
+      RememberJoins = true -- Set this to false to make them join the discord every time they load it up
+   },
+
+   KeySystem = false, -- Set this to true to use our key system
+   KeySettings = {
+      Title = "Untitled",
+      Subtitle = "Key System",
+      Note = "No method of obtaining the key is provided", -- Use this to tell the user how to get a key
+      FileName = "Key", -- It is recommended to use something unique as other scripts using Rayfield may overwrite your key file
+      SaveKey = true, -- The user's key will be saved, but if you change the key, they will be unable to use your script
+      GrabKeyFromSite = false, -- If this is true, set Key below to the RAW site you would like Rayfield to get the key from
+      Key = {"Hello"} -- List of keys that will be accepted by the system, can be RAW file links (pastebin, github etc) or simple strings ("hello","key22")
+   }
+})
+
+
+local Tab = Window:CreateTab("Main", 4483362458) -- Title, Image
+
+
+local user = game:GetService("UserInputService")
+local run = game:GetService("RunService")
+local players = game:GetService("Players")
+local vim = game:GetService("VirtualInputManager")
+local lp = players.LocalPlayer
+local char = lp.Character or lp.CharacterAdded:Wait()
+local hrp = char:WaitForChild("HumanoidRootPart")
+
+local studs = 8
+local keybind = Enum.KeyCode.T
+local delay = 0.03
+
+local shooting = false
+local Fades = false
+local Movingshots = false
+local Hooks = false
+local Layups = false
+local Dunks = false
+local enableTeamCheck = true  -- Set to false to disable team check
+local blockChanceEnabled = false
+local blockChance = 100
+
+
+
+local animIDs = {}
+
+
+local function updateAnimIDs()
+animIDs = {
+    -- Shooting
+    ["16112516150"] = shooting, ["16112582081"] = shooting, ["135137541654346"] = shooting, ["121738684359846"] = shooting,
+    ["108251070470966"] = shooting, ["76838103316088"] = shooting, ["87099380057565"] = shooting, ["77002657112543"] = shooting,
+    ["126991290648125"] = shooting, ["128153477886113"] = shooting, ["98047855857982"] = shooting, ["124065081453314"] = shooting,
+    ["131246981530622"] = shooting, ["79358093673623"] = shooting, ["119257315810645"] = shooting, ["98241165703197"] = shooting,
+    ["90923105105422"] = shooting, ["72950764061115"] = shooting, ["73091847555345"] = shooting, ["134707555201615"] = shooting,
+    ["80388783978305"] = shooting, ["129361999061126"] = shooting, ["108745696085815"] = shooting, ["72245151740637"] = shooting,
+    ["124207008479040"] = shooting, ["93403557211049"] = shooting, ["91244762728670"] = shooting, ["108820521843520"] = shooting,
+
+    -- Fades
+    ["138046389540675"] = Fades, ["127547831332628"] = Fades, ["15977894192"] = Fades, ["15347552797"] = Fades,
+
+    -- Moving Shots
+    ["15347169169"] = Movingshots, ["15347163366"] = Movingshots,
+
+    -- Hooks
+    ["14270526362"] = Hooks, ["14271154175"] = Hooks,
+
+    -- Layups
+    ["14162578959"] = Layups, ["16154147726"] = Layups, ["16153893144"] = Layups,
+    ["16563554926"] = Layups, ["16563394327"] = Layups,
+
+    -- Dunks
+    ["90317609520782"] = Dunks, ["81532505252988"] = Dunks, ["15239809644"] = Dunks,
+    ["118953123505999"] = Dunks, ["15230192060"] = Dunks, ["127230371179817"] = Dunks,
+    ["15490828826"] = Dunks, ["133941151264930"] = Dunks, ["140287715584177"] = Dunks,
+    ["74917978528941"] = Dunks, ["116479058868762"] = Dunks, ["15232035047"] = Dunks,
+    ["129994179432214"] = Dunks, ["134539611427968"] = Dunks, ["91134361171740"] = Dunks,
+    ["114706600975258"] = Dunks, ["94295025594798"] = Dunks, ["105989288510318"] = Dunks,
+    ["124536952775152"] = Dunks, ["80710830473513"] = Dunks
+   }
+end
+
+local ignoredAnims = {
+    ["15471047376"] = true,
+    ["91167326593512"] = true,
+    ["15376683616"] = true,
+    ["15376687911"] = true,
+    ["15376692511"] = true,
+    ["15376685605"] = true,
+    ["14270290928"] = true
+}
+
+
+local toggled = false
+local enabled = false
+
+user.InputBegan:Connect(function(input, gpe)
+    if gpe then return end
+    if (input.KeyCode == keybind or input.KeyCode == Enum.KeyCode.F1) and enabled then
+        toggled = not toggled
+        Rayfield:Notify({
+            Title = "Auto Block Status", 
+            Content = toggled and "Enabled" or "Disabled", 
+            Duration = 5, 
+            Image = 4483362458
+        })
+    end
+end)
+
+
+local function onCharacterAdded(newChar)
+    char = newChar
+    hrp = char:WaitForChild("HumanoidRootPart")
+end
+
+if lp.Character then
+    onCharacterAdded(lp.Character)
+end
+lp.CharacterAdded:Connect(onCharacterAdded)
+
+
+run.Heartbeat:Connect(function()
+    if not toggled or not enabled then return end
+
+    local closestPlayer, closestDist = nil, studs
+    for _, plr in ipairs(players:GetPlayers()) do
+        if plr ~= lp and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+            if enableTeamCheck and plr.Team == lp.Team then
+                continue
+            end
+
+            -- ￯﾿ﾢ￯ﾾﾜ￯ﾾﾅ Ignore player completely if they are playing a screen animation
+            local hum = plr.Character:FindFirstChildOfClass("Humanoid")
+            local ignore = false
+            if hum then
+                for _, track in ipairs(hum:GetPlayingAnimationTracks()) do
+                    local id = string.match(track.Animation.AnimationId, "%d+")
+                    if getgenv().IgnoreScreens and ignoredAnims[id] then
+                        ignore = true
+                        break
+                    end
+                end
+            end
+            if ignore then
+                continue
+            end
+
+            local dist = (plr.Character.HumanoidRootPart.Position - hrp.Position).Magnitude
+            if dist <= closestDist then
+                closestPlayer = plr
+                closestDist = dist
+            end
+        end
+    end
+
+    if closestPlayer and closestPlayer.Character then
+        local hum = closestPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if hum then
+            for _, track in ipairs(hum:GetPlayingAnimationTracks()) do
+                local id = string.match(track.Animation.AnimationId, "%d+")
+                if (not getgenv().IgnoreScreens or not ignoredAnims[id]) 
+                   and (animIDs[id] or (blockChanceEnabled and id == "14057562857" and math.random(0, 100) <= blockChance)) then
+                    task.wait(delay)
+                    vim:SendKeyEvent(true, Enum.KeyCode.Space, false, game)
+                    task.wait()
+                    vim:SendKeyEvent(false, Enum.KeyCode.Space, false, game)
+                    break
+                end
+            end
+        end
+    end
+end)
+
+
+
+
+local Toggle = Tab:CreateToggle({
+   Name = "Auto Block",
+   CurrentValue = false,
+   Flag = "AutoJumpToggle",
+   Callback = function(Value)
+       enabled = Value
+       if not Value then
+           toggled = false
+       end
+   end,
+})
+
+local Dropdown = Tab:CreateDropdown({
+    Name = "Block Types",
+    Options = {"Shooting", "Fades", "Movingshots", "Hooks", "Layups", "Dunks"},
+    CurrentOption = {},
+    MultipleOptions = true,
+    Flag = "AnimTypes",
+    Callback = function(Options)
+        shooting = table.find(Options, "Shooting") ~= nil
+        Fades = table.find(Options, "Fades") ~= nil
+        Movingshots = table.find(Options, "Movingshots") ~= nil
+        Hooks = table.find(Options, "Hooks") ~= nil
+        Layups = table.find(Options, "Layups") ~= nil
+        Dunks = table.find(Options, "Dunks") ~= nil
+
+        updateAnimIDs() -- ￯﾿ﾢ￯ﾾﾜ￯ﾾﾅ update the animIDs based on the latest dropdown state
+    end
+})
+
+
+local Slider = Tab:CreateSlider({
+   Name = "Block Delay",
+   Range = {0.01, 2},
+   Increment = 0.01,
+   Suffix = "Delay",
+   CurrentValue = 0.03,
+   Flag = "Slider1", 
+   Callback = function(Value)
+   delay = Value
+   end,
+})
+
+local Slider = Tab:CreateSlider({
+   Name = "Block Studs",
+   Range = {1, 25},
+   Increment = 1,
+   Suffix = "Studs",
+   CurrentValue = 8,
+   Flag = "StudsSlider", 
+   Callback = function(Value)
+   Studs = Value
+   end,
+})
+
+
+local Input = Tab:CreateInput({
+   Name = "Block Keybind",
+   CurrentValue = "",
+   PlaceholderText = "Enter key (Example T)",
+   RemoveTextAfterFocusLost = false,
+   Flag = "KeyInput",
+   Callback = function(text)
+      local success, newKey = pcall(function()
+         return Enum.KeyCode[string.upper(text)]
+      end)
+      if success and newKey then
+         keybind = newKey
+      end
+   end,
+})
+
+
+local TeamCheckToggle = Tab:CreateToggle({
+    Name = "Enable Team Check",
+    CurrentValue = enableTeamCheck,
+    Flag = "TeamCheckToggle",  -- Optional flag for saving state
+    Callback = function(Value)
+        enableTeamCheck = Value  -- Set the value based on the toggle
+        Rayfield:Notify({
+            Title = "Team Check Status", 
+            Content = enableTeamCheck and "Enabled" or "Disabled", 
+            Duration = 5, 
+            Image = 4483362458
+        })
+    end,
+})
+
+
+local BlockChanceToggle = Tab:CreateToggle({
+    Name = "Block PumpFake",
+    CurrentValue = false,
+    Flag = "BlockChanceToggle",
+    Callback = function(Value)
+        blockChanceEnabled = Value
+    end,
+})
+
+local BlockChanceSlider = Tab:CreateSlider({
+    Name = "Block Chance",
+    Range = {0, 100},
+    Increment = 1,
+    Suffix = "%",
+    CurrentValue = 100,
+    Flag = "BlockChanceSlider",
+    Callback = function(Value)
+        blockChance = Value
+    end
+})
+
+
+
+local IgnoreScreensToggle = Tab:CreateToggle({
+    Name = "Ignore Screens",
+    CurrentValue = false,
+    Flag = "IgnoreScreensToggle",
+    Callback = function(Value)
+        getgenv().IgnoreScreens = Value
+    end,
+})
+
+
+
+local players = game:GetService("Players")
+local run = game:GetService("RunService")
+local lp = players.LocalPlayer
+
+-- Animation ID groups
+local dribbleIds = {
+    "15272781227","15272788649","15942602124","15274516803","15942653044",
+    "15274416123","15274089013","15274079399","15271977165","15271965230",
+    "131198489939802","15271961981","15271973365","15562243948",
+    "128670968639482","125040226638577","89962485116172","15352437435","15352487365",
+    "15351945439","15352482992","15540264579","15540264579","15562249571",
+    "16140922302","16140693461"
+}
+
+local shootIds = {
+    "16089248314", "16088498963"
+}
+
+local dunkIds = {
+    "90317609520782","81532505252988","15239809644","118953123505999","15230192060",
+    "127230371179817","15490828826","133941151264930","140287715584177","74917978528941",
+    "116479058868762","15232035047","129994179432214","134539611427968","91134361171740",
+    "114706600975258","94295025594798","105989288510318","124536952775152","80710830473513"
+}
+
+-- Controls
+local tog = false
+local selectedTypes = {"Dribble"}
+
+-- Separate speed values for each category
+local dribbleSpeed = 1
+local shootSpeed = 1
+local dunkSpeed = 1
+
+-- Get all selected IDs
+local function getSelectedIds()
+    local ids = {}
+    for _, typeName in ipairs(selectedTypes) do
+        if typeName == "Dribble" then
+            for _, id in ipairs(dribbleIds) do table.insert(ids, id) end
+        elseif typeName == "Shooting" then
+            for _, id in ipairs(shootIds) do table.insert(ids, id) end
+        elseif typeName == "Dunking" then
+            for _, id in ipairs(dunkIds) do table.insert(ids, id) end
+        end
+    end
+    return ids
+end
+
+-- Determine which speed value applies
+local function getSpeedForId(id)
+    if table.find(dribbleIds, id) then
+        return dribbleSpeed
+    elseif table.find(shootIds, id) then
+        return shootSpeed
+    elseif table.find(dunkIds, id) then
+        return dunkSpeed
+    end
+    return 1
+end
+
+-- Apply speed changes
+local function apply(hum)
+    if not tog then return end
+    local ids = getSelectedIds()
+    for _, track in ipairs(hum.Animator:GetPlayingAnimationTracks()) do
+        local id = string.match(track.Animation.AnimationId, "%d+")
+        if table.find(ids, id) then
+            track:AdjustSpeed(getSpeedForId(id))
+        end
+    end
+end
+
+-- Hook animation start
+local function setup(char)
+    local hum = char:WaitForChild("Humanoid")
+    hum.Animator.AnimationPlayed:Connect(function(track)
+        local ids = getSelectedIds()
+        local id = string.match(track.Animation.AnimationId, "%d+")
+        if table.find(ids, id) then
+            track:AdjustSpeed(tog and getSpeedForId(id) or 1)
+        end
+    end)
+end
+
+-- UI
+local Toggle = Tab:CreateToggle({
+    Name = "Animation Speed Toggle",
+    CurrentValue = false,
+    Flag = "AnimationSpeedToggle",
+    Callback = function(v)
+        tog = v
+    end
+})
+
+local Dropdown = Tab:CreateDropdown({
+    Name = "Animation Types",
+    Options = {"Dribble", "Shooting", "Dunking"},
+    CurrentOption = {"Dribble"},
+    MultipleOptions = true,
+    Flag = "AnimationTypeDropdown",
+    Callback = function(options)
+        selectedTypes = options
+    end
+})
+
+local DribbleSlider = Tab:CreateSlider({
+    Name = "Dribble Speed",
+    Range = {1, 5},
+    Increment = 0.1,
+    Suffix = "x",
+    CurrentValue = dribbleSpeed,
+    Flag = "DribbleSpeedSlider",
+    Callback = function(v)
+        dribbleSpeed = v
+    end
+})
+
+local ShootSlider = Tab:CreateSlider({
+    Name = "Shooting Speed",
+    Range = {1, 5},
+    Increment = 0.1,
+    Suffix = "x",
+    CurrentValue = shootSpeed,
+    Flag = "ShootingSpeedSlider",
+    Callback = function(v)
+        shootSpeed = v
+    end
+})
+
+local DunkSlider = Tab:CreateSlider({
+    Name = "Dunking Speed",
+    Range = {1, 5},
+    Increment = 0.1,
+    Suffix = "x",
+    CurrentValue = dunkSpeed,
+    Flag = "DunkingSpeedSlider",
+    Callback = function(v)
+        dunkSpeed = v
+    end
+})
+
+-- Character setup
+lp.CharacterAdded:Connect(setup)
+if lp.Character then setup(lp.Character) end
+
+-- Frame update
+run.RenderStepped:Connect(function()
+    if tog and lp.Character then
+        local hum = lp.Character:FindFirstChildOfClass("Humanoid")
+        if hum then
+            apply(hum)
+        end
+    end
+end)
+
+
+
+
+
+local players = game:GetService("Players")
+local lp = players.LocalPlayer
+local tog = false
+local savedStates = {}
+
+local function setCollision(char, state)
+    for _, part in ipairs(char:GetDescendants()) do
+        if part:IsA("BasePart") then
+            if not savedStates[part] then
+                savedStates[part] = part.CanCollide
+            end
+            part.CanCollide = state
+        end
+    end
+end
+
+local function restoreCollision(char)
+    for _, part in ipairs(char:GetDescendants()) do
+        if part:IsA("BasePart") and savedStates[part] ~= nil then
+            part.CanCollide = savedStates[part]
+            savedStates[part] = nil
+        end
+    end
+end
+
+local function updateAll()
+    for _, plr in ipairs(players:GetPlayers()) do
+        if plr ~= lp and plr.Character then
+            if tog then
+                setCollision(plr.Character, false)
+            else
+                restoreCollision(plr.Character)
+            end
+        end
+    end
+end
+
+Toggle = Tab:CreateToggle({
+    Name = "Disable Player Colliders",
+    CurrentValue = false,
+    Flag = "ToggleCollider",
+    Callback = function(v)
+        tog = v
+        updateAll()
+    end
+})
+
+players.PlayerAdded:Connect(function(plr)
+    plr.CharacterAdded:Connect(function(char)
+        if tog then
+            setCollision(char, false)
+        end
+    end)
+end)
+
+players.PlayerRemoving:Connect(function(plr)
+    if plr.Character then
+        restoreCollision(plr.Character)
+    end
+end)
+
+
+
+local players = game:GetService("Players")
+local lp = players.LocalPlayer
+local rs = game:GetService("RunService")
+local vim = game:GetService("VirtualInputManager")
+
+local workout = lp.PlayerGui.Main.Workout
+local arrow = workout:WaitForChild("Arrow")
+local perfect = workout:WaitForChild("Perfect")
+local gradient = perfect:WaitForChild("UIGradient")
+
+local autoWorkout = false
+local clicked = false
+
+-- helper to get color from ColorSequence at position (0￯﾿ﾢ￯ﾾﾀ￯ﾾﾓ1)
+local function getColorAt(sequence, t)
+    local keypoints = sequence.Keypoints
+    for i = 1, #keypoints - 1 do
+        local k1, k2 = keypoints[i], keypoints[i+1]
+        if t >= k1.Time and t <= k2.Time then
+            local alpha = (t - k1.Time) / (k2.Time - k1.Time)
+            local r = k1.Value.R + (k2.Value.R - k1.Value.R) * alpha
+            local g = k1.Value.G + (k2.Value.G - k1.Value.G) * alpha
+            local b = k1.Value.B + (k2.Value.B - k1.Value.B) * alpha
+            return Color3.new(r, g, b)
+        end
+    end
+    return keypoints[#keypoints].Value
+end
+
+-- toggle
+local Toggle = Tab:CreateToggle({
+   Name = "Auto Workout",
+   CurrentValue = false,
+   Flag = "Toggle1",
+   Callback = function(Value)
+      autoWorkout = Value
+   end,
+})
+
+-- loop
+rs.RenderStepped:Connect(function()
+    if not autoWorkout then return end
+
+    local arrowPos = arrow.AbsolutePosition.X + (arrow.AbsoluteSize.X / 2)
+    local barStart = perfect.AbsolutePosition.X
+    local barEnd = barStart + perfect.AbsoluteSize.X
+
+    if arrowPos >= barStart and arrowPos <= barEnd then
+        local relPos = (arrowPos - barStart) / perfect.AbsoluteSize.X
+        local color = getColorAt(gradient.Color, relPos)
+
+        if color.G > 0.7 and color.R < 0.5 then
+            if not clicked then
+                vim:SendMouseButtonEvent(0, 0, 0, true, game, 0)
+                vim:SendMouseButtonEvent(0, 0, 0, false, game, 0)
+                clicked = true
+            end
+        else
+            clicked = false
+        end
+    else
+        clicked = false
+    end
+end)
+
+
+
+
+local toggleon = false
+
+run.Heartbeat:Connect(function()
+    if toggleon then
+        lp:SetAttribute("Stamina", 9999)
+    end
+end)
+
+local Toggle = Tab:CreateToggle({
+   Name = "Infinite Stamina",
+   CurrentValue = false,
+   Flag = "Toggle1",
+   Callback = function(Value)
+       toggleon = Value
+   end,
+})
+
+
+Rayfield:LoadConfiguration()
