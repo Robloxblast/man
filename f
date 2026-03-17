@@ -46,7 +46,7 @@ local Dropdown = Tab:CreateDropdown({
    MultipleOptions = false,
    Flag = "Dropdown1",
    Callback = function(Options)
-      gam = Options
+      gam = Options[1]
    end,
 })
 
