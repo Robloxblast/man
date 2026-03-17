@@ -63,25 +63,30 @@ old = hookmetamethod(game, "__namecall", function(self, ...)
 end)
 
 
-local StaminaToggle = false
+local staminaToggle = false
+local rs = game:GetService("RunService")
 
-local Toggle = Tab:CreateToggle({
+Tab:CreateToggle({
     Name = "Infinite Stamina",
     CurrentValue = false,
     Flag = "StaminaToggle",
-    Callback = function(Value)
-        StaminaToggle = Value
+    Callback = function(v)
+        staminaToggle = v
     end,
 })
 
-local oldIndex
-oldIndex = hookmetamethod(game, "__index", function(self, key)
-    if StaminaToggle and self == game:GetService("Players").LocalPlayer.Values and key == "Stamina" then
-        return math.huge
+rs.Heartbeat:Connect(function()
+    if staminaToggle then
+        local p = game:GetService("Players").LocalPlayer
+        local vals = p:FindFirstChild("Values")
+        if vals then
+            local stam = vals:FindFirstChild("Stamina")
+            if stam and stam:IsA("NumberValue") and stam.Value ~= 100 then
+                stam.Value = 100
+            end
+        end
     end
-    return oldIndex(self, key)
 end)
-
 
 local p = game:GetService("Players").LocalPlayer
 local c = p.Character or p.CharacterAdded:Wait()
