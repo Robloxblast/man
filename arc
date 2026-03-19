@@ -92,10 +92,10 @@ local p = game:GetService("Players").LocalPlayer
 local c = p.Character or p.CharacterAdded:Wait()
 local hrp = c:WaitForChild("HumanoidRootPart")
 local vals = p:WaitForChild("Values")
-local dribble = vals:WaitForChild("Dribbling")
+local dribble = vals:WaitForChild("Dribbling") -- BoolValue
 
 local enabled = false
-local addAmount = 10
+local glideSpeed = 10 -- initial value
 
 local Toggle = Tab:CreateToggle({
     Name = "Dribble Glide",
@@ -107,27 +107,28 @@ local Toggle = Tab:CreateToggle({
 })
 
 local Slider = Tab:CreateSlider({
-    Name = "Glide Amount",
-    Range = {1, 20},
-    Increment = 0.1,
+    Name = "Glide Speed",
+    Range = {1, 100}, -- max 100
+    Increment = 1,
     Suffix = "",
-    CurrentValue = addAmount,
-    Flag = "GlideAmount",
+    CurrentValue = glideSpeed,
+    Flag = "GlideSpeed",
     Callback = function(v)
-        addAmount = v
+        glideSpeed = v
     end,
 })
 
-game:GetService("RunService").Heartbeat:Connect(function()
+game:GetService("RunService").Heartbeat:Connect(function(delta)
     if enabled and dribble.Value then
         local bv = hrp:FindFirstChild("BodyVelocity")
         if bv then
-            local v = bv.Velocity
-
-            local x = v.X ~= 0 and (v.X + (v.X > 0 and addAmount or -addAmount)) or 0
-            local z = v.Z ~= 0 and (v.Z + (v.Z > 0 and addAmount or -addAmount)) or 0
-
-            bv.Velocity = Vector3.new(x, v.Y, z)
+            local vel = bv.Velocity
+            local targetVel = Vector3.new(
+                vel.X ~= 0 and (vel.X > 0 and glideSpeed or -glideSpeed) or 0,
+                vel.Y,
+                vel.Z ~= 0 and (vel.Z > 0 and glideSpeed or -glideSpeed) or 0
+            )
+            bv.Velocity = vel:Lerp(targetVel, 0.1 * delta * 60)
         end
     end
 end)
@@ -141,6 +142,7 @@ local blockEvent = game:GetService("ReplicatedStorage"):WaitForChild("Events"):W
 
 local autoBlockEnabled = false
 local autoBlockMaxStuds = 20
+local teamCheckEnabled = false
 
 -- Auto Block Toggle
 local BlockToggle = Tab:CreateToggle({
@@ -165,6 +167,16 @@ local BlockSlider = Tab:CreateSlider({
     end,
 })
 
+-- Team Check Toggle
+local TeamToggle = Tab:CreateToggle({
+    Name = "Team Check",
+    CurrentValue = false,
+    Flag = "TeamCheck",
+    Callback = function(v)
+        teamCheckEnabled = v
+    end,
+})
+
 RunService.Heartbeat:Connect(function()
     if not autoBlockEnabled then return end
 
@@ -173,6 +185,10 @@ RunService.Heartbeat:Connect(function()
 
     for _, plr in pairs(players:GetPlayers()) do
         if plr ~= p and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+            if teamCheckEnabled and plr.Team == p.Team then
+                continue
+            end
+
             local shooting = plr:FindFirstChild("Values") and plr.Values:FindFirstChild("Shooting")
             if shooting and shooting:IsA("BoolValue") and shooting.Value == true then
                 local dist = (hrp.Position - plr.Character.HumanoidRootPart.Position).Magnitude
@@ -189,7 +205,6 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
-
 local Paragraph = Tab:CreateParagraph({Title = "Anti Steal INFO", Content = "What Anti Steal does is it will auto dribble if someone tries to steal from you"})
 
 local p = game:GetService("Players").LocalPlayer
@@ -201,6 +216,8 @@ local VirtualInput = game:GetService("VirtualInputManager")
 
 local antiStealEnabled = false
 local antiStealMaxStuds = 15
+local antiStealCooldown = 0.5 -- time before it can trigger again
+local lastTrigger = 0
 
 -- Anti Steal Toggle
 local StealToggle = Tab:CreateToggle({
@@ -225,8 +242,9 @@ local StealSlider = Tab:CreateSlider({
     end,
 })
 
-RunService.Heartbeat:Connect(function()
+RunService.Heartbeat:Connect(function(delta)
     if not antiStealEnabled then return end
+    if tick() - lastTrigger < antiStealCooldown then return end
 
     local closestPlayer = nil
     local closestDistance = math.huge
@@ -245,12 +263,14 @@ RunService.Heartbeat:Connect(function()
     end
 
     if closestPlayer then
-        VirtualInput:SendKeyEvent(true, Enum.KeyCode.Z, false, game)
-        wait(0.05)
-        VirtualInput:SendKeyEvent(false, Enum.KeyCode.Z, false, game)
+        lastTrigger = tick()
+        for i = 1, 2 do
+            VirtualInput:SendKeyEvent(true, Enum.KeyCode.Z, false, game)
+            wait(0.05)
+            VirtualInput:SendKeyEvent(false, Enum.KeyCode.Z, false, game)
+        end
     end
 end)
-
 
 local Button = Tab:CreateButton({
    Name = "Unlock All (SEASON PASS)",
