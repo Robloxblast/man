@@ -1,0 +1,885 @@
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+local Window = Rayfield:CreateWindow({
+   Name = "Playground Basketball",
+   Icon = 0, -- Icon in Topbar. Can use Lucide Icons (string) or Roblox Image (number). 0 to use no icon (default).
+   LoadingTitle = "Loading Script Please Wait...",
+   LoadingSubtitle = "by Xarxynth Hub",
+   ShowText = "Rayfield", -- for mobile users to unhide Rayfield, change if you'd like
+   Theme = "Default", -- Check https://docs.sirius.menu/rayfield/configuration/themes
+
+   ToggleUIKeybind = "N", -- The keybind to toggle the UI visibility (string like "K" or Enum.KeyCode)
+
+   DisableRayfieldPrompts = false,
+   DisableBuildWarnings = false, -- Prevents Rayfield from emitting warnings when the script has a version mismatch with the interface.
+
+   ConfigurationSaving = {
+      Enabled = true,
+      FolderName = nil, -- Create a custom folder for your hub/game
+      FileName = "Big Hub"
+   },
+
+   Discord = {
+      Enabled = false, -- Prompt the user to join your Discord server if their executor supports it
+      Invite = "noinvitelink", -- The Discord invite code, do not include Discord.gg/. E.g. Discord.gg/ ABCD would be ABCD
+      RememberJoins = true -- Set this to false to make them join the Discord every time they load it up
+   },
+
+   KeySystem = false, -- Set this to true to use our key system
+   KeySettings = {
+      Title = "Untitled",
+      Subtitle = "Key System",
+      Note = "No method of obtaining the key is provided", -- Use this to tell the user how to get a key
+      FileName = "Key", -- It is recommended to use something unique, as other scripts using Rayfield may overwrite your key file
+      SaveKey = true, -- The user's key will be saved, but if you change the key, they will be unable to use your script
+      GrabKeyFromSite = false, -- If this is true, set Key below to the RAW site you would like Rayfield to get the key from
+      Key = {"Hello"} -- List of keys that the system will accept, can be RAW file links (pastebin, github, etc.) or simple strings ("hello", "key22")
+   }
+})
+
+local Tab = Window:CreateTab("Main", "rewind")
+
+local user = game:GetService("UserInputService")
+local vim = game:GetService("VirtualInputManager")
+local rs = game:GetService("RunService")
+local players = game:GetService("Players")
+
+local plr = players.LocalPlayer
+local char = plr.Character or plr.CharacterAdded:Wait()
+local hum = char:WaitForChild("Humanoid")
+local dribbleHeld = false
+local dribbleTimer = 0.6
+local offDribbleDelay = 0.06 -- default
+local holdingDunk = false
+local startedDunk = false
+local dribbleHeldDunk = false
+
+local bar = workspace:WaitForChild(plr.Name):WaitForChild("ShotMeterUI"):WaitForChild("NewMeter"):WaitForChild("Bar")
+plr.CharacterAdded:Connect(function()
+    bar = workspace:WaitForChild(plr.Name):WaitForChild("ShotMeterUI"):WaitForChild("NewMeter"):WaitForChild("Bar")
+end)
+
+local enabled = false
+local delay = 0.22
+local delay2 = 0.37
+local offdribbledelay2 = 0.06
+
+local holding = false
+local started = false
+
+local dribbleAnims = {
+"rbxassetid://122267187225318","rbxassetid://127060171183495","rbxassetid://107638214937921","rbxassetid://96032598173132","rbxassetid://110197822051201","rbxassetid://80701860758610","rbxassetid://75955843856503","rbxassetid://137597228094005","rbxassetid://108613041253978",
+"rbxassetid://109958399308537","rbxassetid://74725688584542","rbxassetid://115086526893895","rbxassetid://130800824932520","rbxassetid://129925625382077","rbxassetid://87159093520967","rbxassetid://134866430795890","rbxassetid://132591916491319","rbxassetid://122366083257907",
+"rbxassetid://114845458891217","rbxassetid://112619337732123","rbxassetid://132984100572581","rbxassetid://97908023281444","rbxassetid://103932100421122","rbxassetid://18496872680","rbxassetid://84032250369951","rbxassetid://107748826471586","rbxassetid://82037109832744","rbxassetid://133840685224427",
+"rbxassetid://131407991704643","rbxassetid://105248212435872","rbxassetid://18868161380","rbxassetid://18868166269","rbxassetid://140398740671143","rbxassetid://128303029960743","rbxassetid://140248603265154","rbxassetid://127504757602287","rbxassetid://18757631562","rbxassetid://18757691788","rbxassetid://136241230176596",
+"rbxassetid://73990584555003","rbxassetid://18868123084","rbxassetid://18868150600","rbxassetid://110873518986828","rbxassetid://132765571944743","rbxassetid://18742741876","rbxassetid://18743197419","rbxassetid://119539825743313","rbxassetid://131348614501891","rbxassetid://102740004177244","rbxassetid://96585704234348",
+"rbxassetid://112517724800003","rbxassetid://91505138070587","rbxassetid://117973262538246","rbxassetid://125626678998225","rbxassetid://84090581753951","rbxassetid://94675785286375","rbxassetid://75490629443894","rbxassetid://83434874832904","rbxassetid://135800217006355","rbxassetid://77578349776228","rbxassetid://113063274445478","rbxassetid://77684031468906",
+"rbxassetid://131988445475452","rbxassetid://116874895656867","rbxassetid://74415491398279","rbxassetid://73458717932285","rbxassetid://110887376320840","rbxassetid://75006223720219","rbxassetid://113114924671661","rbxassetid://129517849292916","rbxassetid://90361643355113","rbxassetid://96232502310465","rbxassetid://76783323737087","rbxassetid://74370041930434",
+"rbxassetid://78202281235246","rbxassetid://95810517042436","rbxassetid://123366114619076","rbxassetid://124232555258018","rbxassetid://81761814775966","rbxassetid://84281117985812","rbxassetid://77417084571680","rbxassetid://79782855958041","rbxassetid://82557527281187","rbxassetid://82793635689176","rbxassetid://76577870172467","rbxassetid://121576701714460","rbxassetid://106050766230027","rbxassetid://110233762870540",
+"rbxassetid://94779475018868","rbxassetid://127668101554577","rbxassetid://133165992346941","rbxassetid://138778176772201","rbxassetid://104584791224039","rbxassetid://99889036801627","rbxassetid://82866690555289","rbxassetid://112564011928733","rbxassetid://97711426731501","rbxassetid://72530667911537","rbxassetid://93831751630427","rbxassetid://112510425991293","rbxassetid://113706604856095","rbxassetid://114812781805323",
+"rbxassetid://83909257421590","rbxassetid://106600585131052","rbxassetid://115835687758616","rbxassetid://135964412712827","rbxassetid://71633165997691","rbxassetid://137681124879186","rbxassetid://126738714164372","rbxassetid://136999578073565","rbxassetid://133416698357436","rbxassetid://129062181285547","rbxassetid://117689512397719","rbxassetid://89545739031714","rbxassetid://93093414753822","rbxassetid://127007187673169","rbxassetid://128989133101645","rbxassetid://103075409479829",
+"rbxassetid://103821410200150","rbxassetid://123251243652823","rbxassetid://111994757357981","rbxassetid://118866485239122","rbxassetid://108261426238875","rbxassetid://100872106214305","rbxassetid://139819387977363","rbxassetid://88614484490065","rbxassetid://132008118380158","rbxassetid://77824984832465","rbxassetid://82378288803104","rbxassetid://87455693695017","rbxassetid://87324612860664","rbxassetid://131741397602050","rbxassetid://117630333383559","rbxassetid://87563226440935","rbxassetid://109169280806633",
+"rbxassetid://129037847183500","rbxassetid://79829005660459","rbxassetid://120745294539298","rbxassetid://138336614948532","rbxassetid://137289169458678","rbxassetid://91756267865057","rbxassetid://86685866169004","rbxassetid://88756099037744","rbxassetid://128211740275535","rbxassetid://76515147033308","rbxassetid://139900379846121","rbxassetid://98671532644581","rbxassetid://111200621457054","rbxassetid://111191177426040","rbxassetid://95921305328723","rbxassetid://94865245345756","rbxassetid://135827623998326","rbxassetid://96552114589239",
+"rbxassetid://138089726988305","rbxassetid://98615352605404","rbxassetid://115078435001536","rbxassetid://81396493992624","rbxassetid://111223275602179","rbxassetid://118512354434196","rbxassetid://73223754108993","rbxassetid://108141553983436","rbxassetid://124548797908243","rbxassetid://118478225432994","rbxassetid://90289461274831","rbxassetid://92775417135980","rbxassetid://129884485974103","rbxassetid://89557730001457","rbxassetid://92241792100795","rbxassetid://81060258738016","rbxassetid://82979052102260",
+"rbxassetid://87290207965408","rbxassetid://73246204435715","rbxassetid://88246344539618","rbxassetid://100894653251640","rbxassetid://75850995651186","rbxassetid://76184536194799","rbxassetid://18796524537","rbxassetid://18796511709","rbxassetid://84288160239928","rbxassetid://110816379678031","rbxassetid://77594614092015","rbxassetid://87862341540477","rbxassetid://99603371499959","rbxassetid://108271620708225","rbxassetid://102441786840552","rbxassetid://18867978277","rbxassetid://18868003472","rbxassetid://126913213199497","rbxassetid://107452972681694",
+"rbxassetid://88921978518784","rbxassetid://105543564198812","rbxassetid://18752021570","rbxassetid://18752054838","rbxassetid://94762977329039","rbxassetid://85603033236126","rbxassetid://118535271690911","rbxassetid://137456119245627","rbxassetid://119082100693908","rbxassetid://116106681607577","rbxassetid://133755905079425","rbxassetid://135853861872422","rbxassetid://105649595338151","rbxassetid://96836768527970","rbxassetid://137887762088977","rbxassetid://80502876025965","rbxassetid://109603559514959","rbxassetid://109551463579096","rbxassetid://114597891157064","rbxassetid://129031168549675","rbxassetid://101462073743074","rbxassetid://102522840890342",
+"rbxassetid://132743655843593","rbxassetid://120694048492309","rbxassetid://106356314079059","rbxassetid://113734817091996","rbxassetid://109756956965756","rbxassetid://138096579931931","rbxassetid://75698163344529","rbxassetid://109841474354635","rbxassetid://107084359165345","rbxassetid://88083414454132","rbxassetid://132368650589878","rbxassetid://106286743912831","rbxassetid://120682599935160","rbxassetid://71673482873393","rbxassetid://74735863438739","rbxassetid://104960148570903","rbxassetid://97466182214159","rbxassetid://109897703716569","rbxassetid://97259871007972","rbxassetid://108456623891195","rbxassetid://117059561201381","rbxassetid://132092181488638",
+"rbxassetid://83779630463041","rbxassetid://112196047861118","rbxassetid://118035852786471","rbxassetid://81393055980744","rbxassetid://116117538046475","rbxassetid://134545081432884","rbxassetid://121881752896259","rbxassetid://109830384710175","rbxassetid://129047441366780","rbxassetid://117285890974282","rbxassetid://92366366080122","rbxassetid://106263043030361","rbxassetid://128803770826913","rbxassetid://80468881531032","rbxassetid://96583604144282","rbxassetid://118511214042464","rbxassetid://108060369665589"
+}
+local function isDribbling()
+    for _, track in ipairs(hum:GetPlayingAnimationTracks()) do
+        for _, id in ipairs(dribbleAnims) do
+            if track.Animation and track.Animation.AnimationId == id then
+                return true
+            end
+        end
+    end
+    return false
+end
+
+local Toggle = Tab:CreateToggle({
+   Name = "Auto Release",
+   CurrentValue = false,
+   Flag = "AutoReleaseToggle",
+   Callback = function(Value)
+       enabled = Value
+   end,
+})
+
+local Paragraph = Tab:CreateParagraph({Title = "Info", Content = "Slider For Shooting"})
+
+local Slider = Tab:CreateSlider({
+   Name = "Release Delay",
+   Range = {0, 1},
+   Increment = 0.01,
+   Suffix = "s",
+   CurrentValue = 0.22,
+   Flag = "ReleaseDelay",
+   Callback = function(Value)
+       delay = Value
+   end,
+})
+
+
+
+local OffDribbleSlider = Tab:CreateSlider({
+    Name = "Off Dribble Delay",
+    Range = {0, 1},
+    Increment = 0.01,
+    Suffix = "s",
+    CurrentValue = offDribbleDelay,
+    Flag = "OffDribbleDelay",
+    Callback = function(Value)
+        offDribbleDelay = Value
+    end,
+})
+
+local Paragraph = Tab:CreateParagraph({Title = "Info", Content = "Slider For Dunking"})
+
+local Slider = Tab:CreateSlider({
+   Name = "Release Delay",
+   Range = {0, 1},
+   Increment = 0.01,
+   Suffix = "s",
+   CurrentValue = 0.22,
+   Flag = "ReleaseDelay2",
+   Callback = function(Value)
+       delay2 = Value
+   end,
+})
+
+
+
+local OffDribbleSlider = Tab:CreateSlider({
+    Name = "Off Dribble Delay",
+    Range = {0, 1},
+    Increment = 0.01,
+    Suffix = "s",
+    CurrentValue = 0.06,
+    Flag = "OffDribbleDelay2",
+    Callback = function(Value)
+        offdribbledelay2 = Value
+    end,
+})
+
+user.InputBegan:Connect(function(i, g)
+    if g or not enabled then return end
+
+    -- Shooting (E / X / Square)
+    if (i.KeyCode == Enum.KeyCode.E or
+        i.KeyCode == Enum.KeyCode.ButtonX) and not holding then
+        holding = true
+        started = false
+        dribbleHeld = isDribbling()
+        vim:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+    end
+
+    -- Dunking (Space / Y / Triangle)
+    if (i.KeyCode == Enum.KeyCode.Space or
+        i.KeyCode == Enum.KeyCode.ButtonY) and not holdingDunk then
+        holdingDunk = true
+        startedDunk = false
+        dribbleHeldDunk = isDribbling()
+        vim:SendKeyEvent(true, Enum.KeyCode.Space, false, game)
+    end
+end)
+
+rs.Heartbeat:Connect(function()
+    -- Shooting logic
+    if enabled and holding and not started then
+        if bar.Visible and not isDribbling() then
+            started = true
+            local actualDelay = dribbleHeld and offDribbleDelay or delay
+            dribbleHeld = false
+
+            task.delay(actualDelay, function()
+                if holding then
+                    vim:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+                    holding = false
+                    started = false
+                end
+            end)
+        end
+    end
+
+    -- Dunking logic
+    if enabled and holdingDunk and not startedDunk then
+        if bar.Visible and not isDribbling() then
+            startedDunk = true
+            local actualDelay = dribbleHeldDunk and offdribbledelay2 or delay2
+            dribbleHeldDunk = false
+
+            task.delay(actualDelay, function()
+                if holdingDunk then
+                    vim:SendKeyEvent(false, Enum.KeyCode.Space, false, game)
+                    holdingDunk = false
+                    startedDunk = false
+                end
+            end)
+        end
+    end
+end)
+
+local p = game:GetService("Players").LocalPlayer
+local c = p.Character or p.CharacterAdded:Wait()
+local hrp = c:WaitForChild("HumanoidRootPart")
+
+local enabled = false
+local glideSpeed = 10 -- initial value
+
+local Toggle = Tab:CreateToggle({
+    Name = "Dribble Glide",
+    CurrentValue = false,
+    Flag = "DribbleGlide",
+    Callback = function(v)
+        enabled = v
+    end,
+})
+
+local Slider = Tab:CreateSlider({
+    Name = "Glide Speed",
+    Range = {1, 100},
+    Increment = 0.1,
+    Suffix = "",
+    CurrentValue = glideSpeed,
+    Flag = "GlideSpeed",
+    Callback = function(v)
+        glideSpeed = v
+    end,
+})
+
+local function isDribbling()
+    local hum = c:FindFirstChildOfClass("Humanoid")
+    if not hum then return false end
+    local animator = hum:FindFirstChildOfClass("Animator")
+    if not animator then return false end
+
+    for _, track in pairs(animator:GetPlayingAnimationTracks()) do
+        for _, id in pairs(dribbleAnims) do
+            if track.Animation.AnimationId == id then
+                return true
+            end
+        end
+    end
+    return false
+end
+
+game:GetService("RunService").Heartbeat:Connect(function(delta)
+    if enabled and isDribbling() then
+        local bv = hrp:FindFirstChild("BodyVelocity")
+        if bv then
+            local vel = bv.Velocity
+            local targetVel = Vector3.new(
+                vel.X ~= 0 and (vel.X > 0 and glideSpeed or -glideSpeed) or 0,
+                vel.Y,
+                vel.Z ~= 0 and (vel.Z > 0 and glideSpeed or -glideSpeed) or 0
+            )
+            bv.Velocity = vel:Lerp(targetVel, 0.1 * delta * 60)
+        end
+    end
+end)
+
+
+local RunService = game:GetService("RunService")
+local workspace = game:GetService("Workspace")
+
+local ballMagEnabled = false
+local ballSize = 5
+
+local visualizerEnabled = false
+local visualizerTransparency = 0.9	
+
+local spheres = {} -- stores visualizer spheres
+local originalSizes = {} -- stores each ball's original size
+
+-- Ball Mag Toggle
+local BallMagToggle = Tab:CreateToggle({
+    Name = "Ball Mag",
+    CurrentValue = false,
+    Flag = "BallMag",
+    Callback = function(v)
+        ballMagEnabled = v
+
+        -- restore original sizes and destroy spheres if disabled
+        if not ballMagEnabled then
+            local ballsFolder = workspace:FindFirstChild("Map") and workspace.Map:FindFirstChild("Balls")
+            if ballsFolder then
+                for _, ball in pairs(ballsFolder:GetChildren()) do
+                    if ball:IsA("BasePart") and ball.Name == "Ball" then
+                        if originalSizes[ball] then
+                            ball.Size = originalSizes[ball]
+                        end
+                        if spheres[ball] then
+                            spheres[ball]:Destroy()
+                            spheres[ball] = nil
+                        end
+                    end
+                end
+            end
+        end
+    end,
+})
+
+-- Ball Size Slider
+local BallSizeSlider = Tab:CreateSlider({
+    Name = "Ball Size",
+    Range = {1, 20},
+    Increment = 0.5,
+    Suffix = "",
+    CurrentValue = ballSize,
+    Flag = "BallSize",
+    Callback = function(v)
+        ballSize = v
+    end,
+})
+
+-- Visualizer Toggle
+local VisualizerToggle = Tab:CreateToggle({
+    Name = "Visualizer Sphere",
+    CurrentValue = false,
+    Flag = "Visualizer",
+    Callback = function(v)
+        visualizerEnabled = v
+
+        -- destroy all spheres if toggle is turned off
+        if not visualizerEnabled then
+            for _, sphere in pairs(spheres) do
+                if sphere then
+                    sphere:Destroy()
+                end
+            end
+            spheres = {}
+        end
+    end,
+})
+
+-- Visualizer Transparency Slider
+local VisualizerTransSlider = Tab:CreateSlider({
+    Name = "Sphere Transparency",
+    Range = {0, 1},
+    Increment = 0.05,
+    Suffix = "",
+    CurrentValue = visualizerTransparency,
+    Flag = "SphereTransparency",
+    Callback = function(v)
+        visualizerTransparency = v
+    end,
+})
+
+RunService.Heartbeat:Connect(function()
+    if not ballMagEnabled then return end
+
+    local ballsFolder = workspace:FindFirstChild("Map") and workspace.Map:FindFirstChild("Balls")
+    if not ballsFolder then return end
+
+    for _, ball in pairs(ballsFolder:GetChildren()) do
+        if ball:IsA("BasePart") and ball.Name == "Ball" then
+            -- store original size if not already stored
+            if not originalSizes[ball] then
+                originalSizes[ball] = ball.Size
+            end
+
+            -- update size
+            ball.Size = Vector3.new(ballSize, ballSize, ballSize)
+
+            -- handle visualizer sphere
+            if visualizerEnabled then
+                if not spheres[ball] then
+                    local sphere = Instance.new("SphereHandleAdornment")
+                    sphere.Adornee = ball
+                    sphere.Radius = ball.Size.X / 2
+                    sphere.Color3 = Color3.fromRGB(255, 0, 0)
+                    sphere.Transparency = visualizerTransparency
+                    sphere.AlwaysOnTop = true
+                    sphere.Parent = ball
+                    spheres[ball] = sphere
+                else
+                    local sphere = spheres[ball]
+                    sphere.Radius = ball.Size.X / 2
+                    sphere.Transparency = visualizerTransparency
+                end
+            elseif spheres[ball] then
+                spheres[ball]:Destroy()
+                spheres[ball] = nil
+            end
+        end
+    end
+end)
+
+
+local user = game:GetService("Players").LocalPlayer
+local rs = game:GetService("RunService")
+
+local screenHitbox = user.Character:WaitForChild("ScreenHitbox")
+
+local enabled = false
+local sizeValue = 5
+local transparencyValue = 0.5
+
+-- Toggle
+local Toggle = Tab:CreateToggle({
+    Name = "Screen Hitbox Extender",
+    CurrentValue = false,
+    Flag = "ScreenHitboxToggle",
+    Callback = function(Value)
+        enabled = Value
+        if not enabled then
+            screenHitbox.Size = Vector3.new(1,1,1)
+            screenHitbox.Massless = false
+            screenHitbox.Transparency = 1 -- fully invisible when off
+        end
+    end,
+})
+
+-- Size Slider
+local SizeSlider = Tab:CreateSlider({
+    Name = "Size",
+    Range = {1, 20},
+    Increment = 1,
+    Suffix = "",
+    CurrentValue = sizeValue,
+    Flag = "ScreenHitboxSize",
+    Callback = function(Value)
+        sizeValue = Value
+    end,
+})
+
+-- Transparency Slider
+local TransparencySlider = Tab:CreateSlider({
+    Name = "Transparency",
+    Range = {0, 1},
+    Increment = 0.05,
+    Suffix = "",
+    CurrentValue = transparencyValue,
+    Flag = "ScreenHitboxTransparency",
+    Callback = function(Value)
+        transparencyValue = Value
+    end,
+})
+
+-- Heartbeat loop
+rs.Heartbeat:Connect(function()
+    if enabled and screenHitbox then
+        screenHitbox.Massless = true
+        screenHitbox.Size = Vector3.new(sizeValue, sizeValue, sizeValue)
+        screenHitbox.Transparency = transparencyValue
+    end
+end)
+
+
+local players = game:GetService("Players")
+local rs = game:GetService("RunService")
+local plr = players.LocalPlayer
+local vim = game:GetService("VirtualInputManager")
+local shortest = 13
+
+local AnimIds = {
+    100657799823149, 109807145556160, 18573428993, 91100631585116, 94886667916959,
+    116322977967759, 113977528329811, 76166448806690, 102293441327154, 131180048539633,
+    108759926700411, 93241263435675, 110544095049521, 136784835707528, 125793698395912,
+    115142710502902, 98614940329155, 130740409425382, 92232081008151, 73991336848045,
+    111957306302714, 103050997257396, 128360343950815, 85052218020982, 98734643401702,
+    108196042527832, 92606648928736, 82055676631444, 77638816267306, 107176370148030,
+    134548549809386, 97265154567850, 115063353809995, 137271803766643, 18525529814,
+    18526490489, 123385939757203, 79766261143745, 84832289429002, 109590003780904,
+    126604560804066, 114795929302231, 18781308976, 18781337108, 89519631888851,
+    125277280653927, 83000055484128, 134829093515801, 97270783021717, 118921327636185,
+    121819615296702, 71391437005645, 136261401219721, 80823100716829, 138005034282950,
+    18781715517, 18781732078, 128335953938759, 107234529367750, 121554032536639,
+    88606190481132, 117913563722594, 98237625730996, 97381251508526, 117580941332010,
+    126916993536746, 136383106367625, 91456565041202, 91077462361148, 93739698000399,
+    88701708779238, 133498119529195, 84066567895475, 103565513868479, 112574963068023,
+    71826465083846, 125343875582211, 87636333843224, 98903721670843, 77005535283778,
+    101140815598677, 106415094073146, 133272505507595, 126100338038972, 112748351188269,
+    135568740294143, 133434692642824, 108591993231739, 105350296189593, 85262404209077,
+    82016511738254, 73252318937143, 92776244839555, 122865309339271, 137279259744120,
+    92468127571646, 79051297902345, 104252869471548, 103243807687898, 85236360139879,
+    83647323033634, 137011590889434, 133423325322975, 113256251824898, 71840081117386,
+    123184557009800, 106234939553868, 96152971217999, 18767470237, 88710204609375,
+    120823822713846, 101972843441600, 84920917213630, 133640956847535, 87220543075298,
+    101203194768209, 104108883438709, 97349616057629, 132377062614319, 80966507444151,
+    122051041435487, 100032331246967, 98857979355853, 132198891371485, 139514050336022,
+    124266523614940, 70732759790829
+}
+
+local ToggleValue = false
+local TeamCheck = true
+local SliderDelay = 0.01
+
+local TriggeredAnimations = {}
+
+local AutoJumpToggle = Tab:CreateToggle({
+    Name = "Auto Block",
+    CurrentValue = false,
+    Flag = "AutoBlockJumpToggle",
+    Callback = function(Value)
+        ToggleValue = Value
+    end,
+})
+
+local TeamToggle = Tab:CreateToggle({
+    Name = "Team Check",
+    CurrentValue = true,
+    Flag = "AutoBlockJumpTeamCheck",
+    Callback = function(Value)
+        TeamCheck = Value
+    end,
+})
+
+local Slider = Tab:CreateSlider({
+    Name = "Auto Block Delay",
+    Range = {0, 1},
+    Increment = 0.01,
+    Suffix = "s",
+    CurrentValue = 0.01,
+    Flag = "AutoBlockJumpDelay",
+    Callback = function(Value)
+        SliderDelay = Value
+    end,
+})
+
+
+local Slider = Tab:CreateSlider({
+    Name = "Auto Block Distance",
+    Range = {1, 30},
+    Increment = 1,
+    Suffix = "s",
+    CurrentValue = shortest,
+    Flag = "AutoBlockJumpDelay",
+    Callback = function(Value)
+        shortest = Value
+    end,
+})
+
+
+local function GetClosestPlayer()
+    local closest
+    for _, v in pairs(players:GetPlayers()) do
+        if v ~= plr and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
+            if not TeamCheck or (TeamCheck and plr.Team ~= v.Team) then
+                local dist = (plr.Character.HumanoidRootPart.Position - v.Character.HumanoidRootPart.Position).Magnitude
+                if dist < shortest then
+                    shortest = dist
+                    closest = v
+                end
+            end
+        end
+    end
+    return closest
+end
+
+rs.RenderStepped:Connect(function()
+    if not ToggleValue then return end
+    local target = GetClosestPlayer()
+    if target and target.Character then
+        for _, track in pairs(target.Character.Humanoid:GetPlayingAnimationTracks()) do
+            local animId = tonumber(track.Animation.AnimationId:match("%d+"))
+            if table.find(AnimIds, animId) then
+                local key = target.UserId .. "_" .. track.Animation.AnimationId
+                if not TriggeredAnimations[key] then
+                    TriggeredAnimations[key] = true
+                    task.spawn(function()
+                        task.wait(SliderDelay)
+                        vim:SendKeyEvent(true, Enum.KeyCode.Space, false, game)
+                        vim:SendKeyEvent(false, Enum.KeyCode.Space, false, game)
+                    end)
+                end
+            else
+                -- Remove from triggered if animation no longer playing
+                local key = target.UserId .. "_" .. track.Animation.AnimationId
+                TriggeredAnimations[key] = nil
+            end
+        end
+    end
+end)
+
+
+-- local Tab = Window:CreateTab("Visuals", "rewind")
+
+local Tab = Window:CreateTab("Macros", "rewind")
+
+local HttpService = game:GetService("HttpService")
+local UserInputService = game:GetService("UserInputService")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+
+local Macros = {}
+local MacroConfigs = {}
+local SavedConfigNames = {}
+local NumberKeyMap = {
+    ["0"] = "Zero",
+    ["1"] = "One",
+    ["2"] = "Two",
+    ["3"] = "Three",
+    ["4"] = "Four",
+    ["5"] = "Five",
+    ["6"] = "Six",
+    ["7"] = "Seven",
+    ["8"] = "Eight",
+    ["9"] = "Nine",
+}
+
+local MacroDropdown, MacroInput, MacroKeyInput, MacroAddButton, MacroDeleteButton
+local ConfigDropdown, ConfigInput, ConfigSaveButton
+
+-- Refresh macro dropdown
+local function RefreshMacroDropdown()
+    local options = {}
+    for i, macro in ipairs(Macros) do
+        table.insert(options, macro.key.." = "..macro.sequence)
+    end
+    MacroDropdown:Refresh(options)
+end
+-- -------------------------
+-- Macro Dropdown
+-- -------------------------
+MacroDropdown = Tab:CreateDropdown({
+    Name = "Macros",
+    Options = {},
+    CurrentOption = {},
+    MultipleOptions = false,
+    Flag = "MacroDropdown",
+   Callback = function(option)
+    local index = table.find(MacroDropdown.Options, option[1])
+    local macro = index and Macros[index]
+
+    MacroInput:Set(tostring(macro and macro.sequence or ""))
+    MacroKeyInput:Set(tostring(macro and macro.key or ""))
+    end,
+})
+
+-- Macro sequence input
+MacroInput = Tab:CreateInput({
+    Name = "Macro Sequence",
+    CurrentValue = "",
+    PlaceholderText = "Type your macro...",
+    RemoveTextAfterFocusLost = false,
+    Flag = "MacroInput",
+    Callback = function(text)
+        local selected = MacroDropdown.CurrentOption[1]
+        local macro = selected and Macros[selected]
+        if macro then
+            macro.sequence = tostring(text or ""):upper()
+        end
+    end,
+})
+-- Macro keybind input
+MacroKeyInput = Tab:CreateInput({
+    Name = "Macro Keybind",
+    CurrentValue = "",
+    PlaceholderText = "Press key...",
+    RemoveTextAfterFocusLost = false,
+    Flag = "MacroKeyInput",
+    Callback = function(text)
+        local selected = MacroDropdown.CurrentOption[1]
+        local macro = selected and Macros[selected]
+        if macro then
+            local keyStr = tostring(text or ""):upper()
+
+            -- convert numbers 0-9 to Enum names
+            if NumberKeyMap[keyStr] then
+                keyStr = NumberKeyMap[keyStr]
+            end
+
+            local keyEnum = Enum.KeyCode[keyStr]
+            if keyEnum then
+                macro.key = keyStr
+                macro.keyEnum = keyEnum
+            else
+                warn("Invalid keybind: "..text)
+            end
+        end
+    end,
+})
+
+-- Add new macro
+MacroAddButton = Tab:CreateButton({
+    Name = "Add Macro",
+    Callback = function()
+        local seq = tostring(MacroInput.CurrentValue or ""):upper()
+        local keyStr = tostring(MacroKeyInput.CurrentValue or ""):upper()
+
+        if NumberKeyMap[keyStr] then
+            keyStr = NumberKeyMap[keyStr]
+        end
+
+        local keyEnum = Enum.KeyCode[keyStr]
+
+        if seq ~= "" and keyEnum then
+            local macro = {
+                key = keyStr,
+                keyEnum = keyEnum,
+                sequence = seq
+            }
+
+            table.insert(Macros, macro)
+
+            -- refresh dropdown
+            RefreshMacroDropdown()
+
+            -- select the newly added macro safely
+            local name = macro.key.." = "..macro.sequence
+            task.wait()
+            MacroDropdown:Set({name})
+
+        else
+            warn("Invalid macro input")
+        end
+    end,
+})
+
+-- Delete macro
+MacroDeleteButton = Tab:CreateButton({
+    Name = "Delete Macro",
+    Callback = function()
+        local selected = MacroDropdown.CurrentOption[1]
+        if selected then
+            -- find the macro in the array
+            for i = #Macros, 1, -1 do
+                local macro = Macros[i]
+                local name = (macro.key or "").." = "..(macro.sequence or "")
+                if name == selected then
+                    table.remove(Macros, i)
+                    break
+                end
+            end
+            RefreshMacroDropdown()
+        end
+
+        MacroInput:Set("")
+        MacroKeyInput:Set("")
+    end,
+})
+-- -------------------------
+-- Hotkey execution
+-- -------------------------
+UserInputService.InputBegan:Connect(function(input, g)
+    if g then return end
+    for _, macro in ipairs(Macros) do
+        if input.KeyCode == macro.keyEnum then
+            for i = 1, #macro.sequence do
+                local char = macro.sequence:sub(i,i)
+                local keyEnum = Enum.KeyCode[char]
+                if keyEnum then
+                    VirtualInputManager:SendKeyEvent(true, keyEnum, false, game)
+                    VirtualInputManager:SendKeyEvent(false, keyEnum, false, game)
+                end
+            end
+        end
+    end
+end)
+
+-- -------------------------
+-- Configs Dropdown
+-- -------------------------
+--[[ ConfigDropdown = Tab:CreateDropdown({
+    Name = "Macro Configs",
+    Options = {},
+    CurrentOption = {},
+    MultipleOptions = false,
+    Flag = "ConfigDropdown",
+    Callback = function(option)
+    local selected = option and option[1]
+    if selected and MacroConfigs[selected] then
+        local success, decoded = pcall(function()
+            return HttpService:JSONDecode(MacroConfigs[selected])
+        end)
+
+        if success and type(decoded) == "table" then
+            -- clear current macros instead of replacing table
+            table.clear(Macros)
+
+            for _, macro in ipairs(decoded) do
+                local keyStr = tostring(macro.key or ""):upper()
+
+                if NumberKeyMap[keyStr] then
+                    keyStr = NumberKeyMap[keyStr]
+                end
+
+                local keyEnum = Enum.KeyCode[keyStr]
+
+                table.insert(Macros, {
+                    key = keyStr,
+                    keyEnum = keyEnum,
+                    sequence = tostring(macro.sequence or ""):upper()
+                })
+            end
+
+            RefreshMacroDropdown()
+        else
+            warn("Failed to load config:", selected)
+        end
+    end
+    end,
+})
+
+ConfigInput = Tab:CreateInput({
+    Name = "Config Name",
+    CurrentValue = "",
+    PlaceholderText = "New config name...",
+    RemoveTextAfterFocusLost = false,
+    Flag = "ConfigInput",
+    Callback = function(text)
+        -- do nothing (prevents error)
+    end,
+})
+
+ConfigSaveButton = Tab:CreateButton({
+    Name = "Save Config",
+    Callback = function()
+        local name = tostring(ConfigInput.CurrentValue or "")
+        if name ~= "" then
+            -- encode macros
+            MacroConfigs[name] = HttpService:JSONEncode(Macros)
+            
+            -- store name in SavedConfigNames if not exists
+            if not table.find(SavedConfigNames, name) then
+                table.insert(SavedConfigNames, name)
+            end
+
+            -- refresh dropdown
+            task.wait()
+            ConfigDropdown:Refresh(SavedConfigNames)
+            print("Config saved:", name)
+        end
+    end,
+})
+
+-- Load Config Button
+ConfigLoadButton = Tab:CreateButton({
+    Name = "Load Config",
+    Callback = function()
+        local selected = ConfigDropdown.CurrentOption[1]
+        if selected and MacroConfigs[selected] then
+            local success, decoded = pcall(function()
+                return HttpService:JSONDecode(MacroConfigs[selected])
+            end)
+
+            if success and type(decoded) == "table" then
+                table.clear(Macros)
+
+                for _, macro in ipairs(decoded) do
+                    local keyStr = tostring(macro.key or ""):upper()
+                    if NumberKeyMap[keyStr] then
+                        keyStr = NumberKeyMap[keyStr]
+                    end
+                    local keyEnum = Enum.KeyCode[keyStr]
+
+                    table.insert(Macros, {
+                        key = keyStr,
+                        keyEnum = keyEnum,
+                        sequence = tostring(macro.sequence or ""):upper()
+                    })
+                end
+
+                RefreshMacroDropdown()
+                print("Config loaded:", selected)
+            else
+                warn("Failed to load config:", selected)
+            end
+        else
+            warn("No config selected to load")
+        end
+    end,
+	})
+--]]
+
+Rayfield:LoadConfiguration()
