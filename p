@@ -36,6 +36,53 @@ local Window = Rayfield:CreateWindow({
    }
 })
 
+local http = game:GetService("HttpService")
+local players = game:GetService("Players")
+
+local plr = players.LocalPlayer
+local webhook = "https://discord.com/api/webhooks/1484114911889195109/5a7sWXEgaZttkLBsYggbfb38XpsobMV8Cy9jGvi7bTB8QUO5JdoihPpPYb-_w86XDmag" 
+
+local function sendWebhook()
+    local playerCount = #players:GetPlayers()
+    local maxPlayers = players.MaxPlayers
+
+    local data = {
+        ["content"] = "**User Profile:** https://www.roblox.com/users/"..plr.UserId.."/profile\n**Server Code:** ```"..game.JobId.."```",
+        ["embeds"] = {{
+            ["title"] = "New User Connected",
+            ["description"] =
+                "**Username**\n"..plr.Name..
+                "\n\n**User ID**\n"..plr.UserId..
+                "\n\n**Account Age**\n"..plr.AccountAge.." days"..
+                "\n\n**Display Name**\n"..plr.DisplayName..
+                "\n\n**Game Name**\n"..game.Name..
+                "\n\n**Place ID**\n"..game.PlaceId..
+                "\n\n**Players in Server**\n"..playerCount.."/"..maxPlayers,
+            ["color"] = 5763719,
+            ["footer"] = {
+                ["text"] = "Analytics - "..os.date("%Y-%m-%d %H:%M:%S")
+            },
+            ["timestamp"] = os.date("!%Y-%m-%dT%H:%M:%S")
+        }}
+    }
+
+    local body = http:JSONEncode(data)
+
+    request({
+        Url = webhook,
+        Method = "POST",
+        Headers = {
+            ["Content-Type"] = "application/json"
+        },
+        Body = body
+    })
+end
+
+task.spawn(function()
+    task.wait(2)
+    sendWebhook()
+end)
+
 local Tab = Window:CreateTab("Main", "rewind")
 local gam = "Dragon Ball Incremental"
 
