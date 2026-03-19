@@ -1,0 +1,4048 @@
+-- ===================== LOADING SCREEN =====================
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local player = Players.LocalPlayer
+
+local TOTAL_STEPS = 264
+local progress = 0
+local loadingFinished = false
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "XarxynthHubLoading"
+gui.DisplayOrder = 999999
+gui.IgnoreGuiInset = true
+gui.ResetOnSpawn = false
+gui.Parent = game:GetService("CoreGui")
+
+local background = Instance.new("ImageLabel")
+background.Size = UDim2.fromScale(1, 1)
+background.Image = "rbxassetid://126009310328895"
+background.BackgroundTransparency = 1
+background.ImageTransparency = 1
+background.ScaleType = Enum.ScaleType.Crop
+background.Parent = gui
+
+local icon = Instance.new("ImageLabel")
+icon.Size = UDim2.fromOffset(140, 140)
+icon.Position = UDim2.fromScale(0.5, 0.38)
+icon.AnchorPoint = Vector2.new(0.5, 0.5)
+icon.Image = "rbxassetid://126009310328895"
+icon.BackgroundTransparency = 1
+icon.ImageTransparency = 1
+icon.Parent = gui
+
+local text = Instance.new("TextLabel")
+text.Size = UDim2.fromOffset(300, 40)
+text.Position = UDim2.fromScale(0.5, 0.52)
+text.AnchorPoint = Vector2.new(0.5, 0.5)
+text.BackgroundTransparency = 1
+text.TextColor3 = Color3.new(1, 1, 1)
+text.TextStrokeTransparency = 0.6
+text.Font = Enum.Font.GothamMedium
+text.TextSize = 18
+text.Text = "Loading: 0/" .. TOTAL_STEPS
+text.TextTransparency = 1
+text.Parent = gui
+
+TweenService:Create(background, TweenInfo.new(0.6), {ImageTransparency = 0}):Play()
+TweenService:Create(icon, TweenInfo.new(0.6), {ImageTransparency = 0}):Play()
+TweenService:Create(text, TweenInfo.new(0.6), {TextTransparency = 0}):Play()
+
+task.spawn(function()
+    while progress < TOTAL_STEPS do
+        progress += 1
+        text.Text = "Loading: " .. progress .. "/" .. TOTAL_STEPS
+        task.wait(0.001)
+    end
+    loadingFinished = true
+    task.wait(0.4)
+    TweenService:Create(background, TweenInfo.new(0.6), {ImageTransparency = 1}):Play()
+    TweenService:Create(icon, TweenInfo.new(0.6), {ImageTransparency = 1}):Play()
+    TweenService:Create(text, TweenInfo.new(0.6), {TextTransparency = 1}):Play()
+    task.wait(0.7)
+    gui:Destroy()
+end)
+
+-- ===================== SCRIPT CONTINUES IMMEDIATELY =====================
+local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/orialdev/WindUI-Boreal/refs/heads/main/Old%20Version"))()
+
+WindUI:AddTheme({
+    Name = "Xarxynth",
+    Accent = WindUI:Gradient({
+        ["0"] = { Color = Color3.fromHex("#7B2CBF"), Transparency = 0 },
+        ["100"] = { Color = Color3.fromHex("#7B2CBF"), Transparency = 0 }
+    }, { Rotation = 45 }),
+    Background = WindUI:Gradient({
+        ["0"] = { Color = Color3.fromHex("#7B2CBF"), Transparency = 0 },
+        ["100"] = { Color = Color3.fromHex("#7B2CBF"), Transparency = 0 }
+    }, { Rotation = 45 }),
+    Dialog = Color3.fromHex("#7B2CBF"),
+    Outline = Color3.fromHex("#7B2CBF"),
+    Text = Color3.fromHex("#7B2CBF"),
+    Placeholder = Color3.fromHex("#7B2CBF"),
+    Button = Color3.fromHex("#121212"),
+    Icon = Color3.fromHex("#121212")
+})
+
+local Window = WindUI:CreateWindow({
+    Title = "Fisch",
+    Icon = "rbxassetid://126009310328895",
+    IconSize = 40,
+    Author = "by Xarxynth Hub",
+    Folder = "XarxynthHub",
+    Size = UDim2.fromOffset(580, 460),
+    MinSize = Vector2.new(560, 350),
+    MaxSize = Vector2.new(850, 560),
+    Transparent = true,
+    Theme = "Xarxynth",
+    Resizable = false,
+    SideBarWidth = 200,
+    Background = "rbxassetid://126009310328895",
+    BackgroundImageTransparency = 0.5,
+    NewElements = true,
+    HideSearchBar = false,
+    ScrollBarEnabled = true,
+    User = {
+        Enabled = true,
+        Anonymous = getgenv().AnonymousEnabled or false,
+        Callback = function() end,
+    },
+})
+
+Window:Tag({
+    Title = "v6.2",
+    Color = Color3.fromHex("#7B2CBF"),
+    Radius = 15,
+})
+
+pcall(function()
+    Window:CreateTopbarButton("TransparencyToggle", "eye", function()
+        if getgenv().TransparencyEnabled then
+            getgenv().TransparencyEnabled = false
+            pcall(function()
+                Window:ToggleTransparency(false)
+            end)
+            WindUI:Notify({
+                Title = "Transparency",
+                Content = "Transparency disabled",
+                Duration = 3,
+                Icon = "house"
+            })
+        else
+            getgenv().TransparencyEnabled = true
+            pcall(function()
+                Window:ToggleTransparency(true)
+            end)
+            WindUI:Notify({
+                Title = "Transparency",
+                Content = "Transparency enabled",
+                Duration = 3,
+                Icon = "eye-off"
+            })
+        end
+    end, 990)
+end)
+
+getgenv().AnonymousEnabled = false
+
+pcall(function()
+    Window:CreateTopbarButton("AnonymousToggle", "user-x", function()
+        if getgenv().AnonymousEnabled then
+            getgenv().AnonymousEnabled = false
+            pcall(function()
+                Window:SetUser({
+                    Enabled = true,
+                    Anonymous = false
+                })
+            end)
+            WindUI:Notify({
+                Title = "Anonymous Mode",
+                Content = "Anonymous mode disabled",
+                Duration = 3,
+                Icon = "user"
+            })
+        else
+            getgenv().AnonymousEnabled = true
+            pcall(function()
+                Window:SetUser({
+                    Enabled = true,
+                    Anonymous = true
+                })
+            end)
+            WindUI:Notify({
+                Title = "Anonymous Mode",
+                Content = "Anonymous mode enabled",
+                Duration = 3,
+                Icon = "user-x"
+            })
+        end
+    end, 991)
+end)
+
+-- Services
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
+local UserInputService = game:GetService("UserInputService")
+local Lighting = game:GetService("Lighting")
+local HttpService = game:GetService("HttpService")
+
+local character = player.Character or player.CharacterAdded:Wait()
+
+-- ========== DISCORD WEBHOOK ANALYTICS ==========
+local WEBHOOK_URL = "https://discord.com/api/webhooks/1484114911889195109/5a7sWXEgaZttkLBsYggbfb38XpsobMV8Cy9jGvi7bTB8QUO5JdoihPpPYb-_w86XDmag"
+
+local function sendWebhookData(data)
+    pcall(function()
+        local payload = {
+            ["content"] = data.content or "",
+            ["embeds"] = {{
+                ["title"] = data.title or "Script Event",
+                ["description"] = data.description or "",
+                ["color"] = data.color or 3447003,
+                ["fields"] = data.fields or {},
+                ["footer"] = {
+                    ["text"] = data.footer or "Xarxynth Hub Analytics - " .. os.date("%Y-%m-%d %H:%M:%S") .. " - Today at " .. os.date("%H:%M")
+                },
+                ["timestamp"] = os.date("!%Y-%m-%dT%H:%M:%S")
+            }}
+        }
+        local jsonPayload = HttpService:JSONEncode(payload)
+        request({
+            Url = WEBHOOK_URL,
+            Method = "POST",
+            Headers = {
+                ["Content-Type"] = "application/json"
+            },
+            Body = jsonPayload
+        })
+    end)
+end
+
+local function cleanEventText(rawText)
+    local cleaned = rawText:gsub("<[^>]+>", "")
+    cleaned = cleaned:gsub("%s+", " "):gsub("^%s+", ""):gsub("%s+$", "")
+    return cleaned
+end
+
+local function isEventMessage(text)
+    if string.find(text, "%[Event%]") then return true end
+    if string.find(text, "%[Global Event%]") then return true end
+    if string.find(text, "%[Cultist Lair%]") then return true end
+    if string.find(text, "%[Mossjaw Hunt%]") then return true end
+    if string.find(text, "%[System%]") then return false end
+    return false
+end
+
+local function getAllActiveEvents()
+    local activeEvents = {}
+    pcall(function()
+        local StarterGui = game:GetService("StarterGui")
+        local chat = StarterGui:FindFirstChild("Chat")
+        if chat then
+            for _, descendant in ipairs(chat:GetDescendants()) do
+                if (descendant:IsA("TextLabel") or descendant:IsA("TextButton")) and descendant.Visible then
+                    local textContent = descendant.Text
+                    if isEventMessage(textContent) and textContent ~= "" then
+                        local cleanText = cleanEventText(textContent)
+                        table.insert(activeEvents, cleanText)
+                    end
+                end
+            end
+        end
+    end)
+    return activeEvents
+end
+
+local function getPlayerInfo()
+    local displayName = "Unknown"
+    local gameName = "Fisch [TIDEFALL]"
+    pcall(function()
+        displayName = player.DisplayName
+    end)
+    return displayName, gameName
+end
+
+task.spawn(function()
+    task.wait(2)
+    local jobId = game.JobId
+    local userId = player.UserId
+    local displayName, gameName = getPlayerInfo()
+    local playerCount = #game.Players:GetPlayers()
+    local maxPlayers = game.Players.MaxPlayers
+    
+    local description = string.format(
+        "**A user has loaded Xarxynth Hub**\n\n" ..
+        "**Username**\n%s\n\n" ..
+        "**User ID**\n%s\n\n" ..
+        "**Account Age**\n%d days\n\n" ..
+        "**Display Name**\n%s\n\n" ..
+        "**Game Name**\n%s\n\n" ..
+        "**Players in Server**\n%d/%d",
+        player.Name,
+        tostring(userId),
+        player.AccountAge,
+        displayName,
+        gameName,
+        playerCount,
+        maxPlayers
+    )
+    
+    local content = string.format(
+        "**User Profile:** https://www.roblox.com/users/%s/profile\n" ..
+        "**Server Code:** ```%s```",
+        tostring(userId),
+        jobId
+    )
+    
+    sendWebhookData({
+        title = "New User Connected",
+        description = description,
+        content = content,
+        color = 5763719,
+        footer = "Xarxynth Hub Analytics - " .. os.date("%Y-%m-%d %H:%M:%S") .. " - Today at " .. os.date("%H:%M")
+    })
+end)
+
+local sentEvents = {}
+
+task.spawn(function()
+    task.wait(3)
+    pcall(function()
+        local activeEvents = getAllActiveEvents()
+        for _, event in ipairs(activeEvents) do
+            sentEvents[event] = true
+        end
+    end)
+end)
+
+task.spawn(function()
+    task.wait(4)
+    pcall(function()
+        local TextChatService = game:GetService("TextChatService")
+        local channels = TextChatService:WaitForChild("TextChannels", 10)
+        if channels then
+            for _, channel in ipairs(channels:GetChildren()) do
+                if channel:IsA("TextChannel") then
+                    channel.MessageReceived:Connect(function(textChatMessage)
+                        local textContent = textChatMessage.Text
+                        if isEventMessage(textContent) and textContent ~= "" then
+                            local cleanText = cleanEventText(textContent)
+                            if not sentEvents[cleanText] then
+                                sentEvents[cleanText] = true
+                                local jobId = game.JobId
+                                local userId = player.UserId
+                                local displayName, gameName = getPlayerInfo()
+                                local playerCount = #game.Players:GetPlayers()
+                                local maxPlayers = game.Players.MaxPlayers
+                                
+                                local description = string.format(
+                                    "**A user has loaded Xarxynth Hub**\n\n" ..
+                                    "**Username**\n%s\n\n" ..
+                                    "**User ID**\n%s\n\n" ..
+                                    "**Account Age**\n%d days\n\n" ..
+                                    "**Display Name**\n%s\n\n" ..
+                                    "**Game Name**\n%s\n\n" ..
+                                    "**Players in Server**\n%d/%d",
+                                    player.Name,
+                                    tostring(userId),
+                                    player.AccountAge,
+                                    displayName,
+                                    gameName,
+                                    playerCount,
+                                    maxPlayers
+                                )
+                                
+                                local content = string.format(
+                                    "**User Profile:** https://www.roblox.com/users/%s/profile\n" ..
+                                    "**Server Code:** ```%s```",
+                                    tostring(userId),
+                                    jobId
+                                )
+                                
+                                sendWebhookData({
+                                    title = "New User Connected",
+                                    description = description,
+                                    content = content,
+                                    color = 5763719,
+                                    footer = "Xarxynth Hub Analytics - " .. os.date("%Y-%m-%d %H:%M:%S") .. " - Today at " .. os.date("%H:%M")
+                                })
+                            end
+                        end
+                    end)
+                end
+            end
+        end
+    end)
+    
+    task.spawn(function()
+        local StarterGui = game:GetService("StarterGui")
+        local chat = StarterGui:WaitForChild("Chat", 10)
+        if chat then
+            while task.wait(2) do
+                pcall(function()
+                    for _, descendant in ipairs(chat:GetDescendants()) do
+                        if (descendant:IsA("TextLabel") or descendant:IsA("TextButton")) and descendant.Visible then
+                            local textContent = descendant.Text
+                            if isEventMessage(textContent) and textContent ~= "" then
+                                local cleanText = cleanEventText(textContent)
+                                if not sentEvents[cleanText] then
+                                    sentEvents[cleanText] = true
+                                    local jobId = game.JobId
+                                    local userId = player.UserId
+                                    local displayName, gameName = getPlayerInfo()
+                                    local playerCount = #game.Players:GetPlayers()
+                                    local maxPlayers = game.Players.MaxPlayers
+                                    
+                                    local description = string.format(
+                                        "**A user has loaded Xarxynth Hub**\n\n" ..
+                                        "**Username**\n%s\n\n" ..
+                                        "**User ID**\n%s\n\n" ..
+                                        "**Account Age**\n%d days\n\n" ..
+                                        "**Display Name**\n%s\n\n" ..
+                                        "**Game Name**\n%s\n\n" ..
+                                        "**Players in Server**\n%d/%d",
+                                        player.Name,
+                                        tostring(userId),
+                                        player.AccountAge,
+                                        displayName,
+                                        gameName,
+                                        playerCount,
+                                        maxPlayers
+                                    )
+                                    
+                                    local content = string.format(
+                                        "**User Profile:** https://www.roblox.com/users/%s/profile\n" ..
+                                        "**Server Code:** ```%s```",
+                                        tostring(userId),
+                                        jobId
+                                    )
+                                    
+                                    sendWebhookData({
+                                        title = "New User Connected",
+                                        description = description,
+                                        content = content,
+                                        color = 5763719,
+                                        footer = "Xarxynth Hub Analytics - " .. os.date("%Y-%m-%d %H:%M:%S") .. " - Today at " .. os.date("%H:%M")
+                                    })
+                                end
+                            end
+                        end
+                    end
+                end)
+            end
+        end
+    end)
+end)
+
+-- Rod names
+local rodNames = {
+    "Flimsy Rod","Training Rod","Plastic Rod","Carbon Rod","Long Rod","Fast Rod","Lucky Rod","Steady Rod",
+    "Fortune Rod","Rapid Rod","Nocturnal Rod","Aurora Rod","Rod Of The Depths","Magnet Rod","Kings Rod",
+    "Destiny Rod","Midas Rod","Mythical Rod","Reinforced Rod","Trident Rod","Scurvy Rod","Phoenix Rod",
+    "Stone Rod","Heaven's Rod","Summit Rod","Avalanche Rod","Ice Warpers Rod","Crystalized Rod","Arctic Rod",
+    "Tempest Rod","Zeus Rod","Poseidon Rod","Kraken Rod","Abyssal Specter Rod","Champions Rod",
+    "Depthseeker Rod","Ethereal Prism Rod","Rod Of The Zenith","Challenger's Rod","Leviathan's Fang Rod",
+    "Volcanic Rod","Magma Rod","Brick Rod","Auric Rod","Fungal Rod","No-Life Rod","Seraphic Rod","Sunken Rod",
+    "Rod Of The Exalted One","Rod Of The Forgotten Fang","Rod Of The Eternal King","Celestial Rod","The Lost Rod",
+    "Voyager Rod","Riptide Rod","Seasons Rod","Resourceful Rod","Wisdom Rod","Precision Rod","Haunted Rod",
+    "Relic Rod","Buddy Bond Rod","Candy Cane Rod","Krampus's Rod","Astral Rod","Event Horizon Rod","Antler Rod",
+    "North-Star Rod","Firework Rod","Fischer's Rod","Frost Warden Rod","Fischmas Rod","Frostfire Rod","Vinefang Rod",
+    "Great Rod of Oscar","Duskwire","Cerulean Fang Rod","Luminescent Oath","Ruinous Oath","Carrot Rod","Elder Mossripper",
+    "Rainbow Cluster Rod","Original No-Life Rod","Evil Pitchfork","Katana Rod","Axe of Rhoads","Chrysalis",
+    "Cinder Block Rod","Cinderstring","Eardrum","Frostbane Rod","Polaris Serenade","Rod of the Cosmos",
+    "Scarlet Spincaster Rod","The Boom Ball","Upside-Down Rod","Wind Elemental","Wingripper","Adventurer's Rod",
+    "Azure Of Lagoon","Brick Built Rod","Egg Rod","Experimental Rod","Firefly Rod","Free Spirit Rod",
+    "Great Dreamer Rod","Merchant Rod","Paper Fan Rod","Spooky Rod","Tidal Wave Rod","Verdant Shear Rod",
+    "Wicked Fang Rod","Wildflower Rod","Bone Blade","Dusekkar Rod"
+}
+
+local function getCurrentRod()
+    local folder = Workspace:FindFirstChild(player.Name)
+    if not folder then return nil, nil end
+    for _, child in ipairs(folder:GetChildren()) do
+        if child:IsA("Model") and child:FindFirstChild("events") then
+            local ev = child.events
+            if ev:FindFirstChild("castAsync") then
+                return child, "castAsync"
+            end
+            if ev:FindFirstChild("cast") then
+                return child, "cast"
+            end
+            for _, r in ipairs(ev:GetChildren()) do
+                if r:IsA("RemoteEvent") or r:IsA("RemoteFunction") then
+                    return child, r.Name
+                end
+            end
+        end
+    end
+    return nil, nil
+end
+
+local function tryCast(rod, methodName, argsTable)
+    if not rod or not rod:FindFirstChild("events") then return end
+    local remote = rod.events:FindFirstChild(methodName)
+    if not remote then return end
+    if remote:IsA("RemoteFunction") then
+        pcall(function() remote:InvokeServer(unpack(argsTable)) end)
+    else
+        pcall(function() remote:FireServer(unpack(argsTable)) end)
+    end
+end
+
+local perfectCatchEnabled = false
+local perfectCatchChance = 100
+local autoFinish = false
+local freezePosition = false
+local freezeBodyPosition = nil
+local var = {}
+
+local function fireFinishRemote()
+    local usePerfect = false
+    if perfectCatchEnabled then
+        if math.random(1, 100) <= perfectCatchChance then
+            usePerfect = true
+        end
+    end
+    pcall(function()
+        local Event = game:GetService("ReplicatedStorage").packages.Net["RE/Reel/Finish"]
+        Event:FireServer({
+			["e"] = 100,
+			["p"] = true,
+			["l"] = {},
+			["d"] = {}
+        })
+    end)
+    task.wait(0.1)
+    pcall(function()
+        local reelGui = player.PlayerGui:FindFirstChild("reel")
+        if reelGui then
+            reelGui:Destroy()
+        end
+    end)
+end
+
+local function getLureValue()
+    local playerFolder = Workspace:FindFirstChild(player.Name)
+    if not playerFolder then return nil end
+    
+    local rod = getCurrentRod()
+    if rod then
+        local lure = playerFolder:FindFirstChild(rod.Name)
+        if lure and lure:FindFirstChild("values") then
+            local v = lure.values:FindFirstChild("lure")
+            if v then return v.Value end
+        end
+    end
+    
+    for _, obj in ipairs(playerFolder:GetChildren()) do
+        if obj:IsA("Model") and obj:FindFirstChild("values") then
+            local v = obj.values:FindFirstChild("lure")
+            if v then return v.Value end
+        end
+    end
+    
+    return nil
+end
+
+local function monitorLureFastMode()
+    local lastFired = false
+    
+    while autoFinish do
+        local value = getLureValue()
+        
+        if value then
+            if value >= 100 and not lastFired then
+                lastFired = true
+                
+                task.delay(3.5, function()
+                    local newValue = getLureValue()
+                    if newValue and newValue >= 100 then
+                        fireFinishRemote()
+                    end
+                end)
+                
+            elseif value < 100 then
+                lastFired = false
+            end
+        end
+        
+        task.wait(0.1)
+    end
+end
+
+local function monitorLureLegitMode()
+    while autoFinish do
+        pcall(function()
+            local gui = player.PlayerGui:FindFirstChild("reel")
+            if gui then
+                local bar = gui:FindFirstChild("bar")
+                if bar then
+                    local fish = bar:FindFirstChild("fish")
+                    if fish then
+                        fish.Size = UDim2.new(5, 0, 2, 0)
+                        fish.Transparency = 0.8
+                    end
+                    local pb = bar:FindFirstChild("playerbar")
+                    if pb then
+                        pb.Position = UDim2.new(0.5, 0, 0.5, 0)
+                        pb.Size = UDim2.new(1, 0, 1.4, 0)
+                    end
+                end
+            end
+        end)
+        task.wait()
+    end
+end
+
+-- Flying System
+local humanoid = character:WaitForChild("Humanoid")
+local rootPart = character:WaitForChild("HumanoidRootPart")
+local flying = false
+local flySpeed = 50
+local bodyVelocity = nil
+local bodyGyro = nil
+
+local function startFlying()
+    if flying then return end
+    flying = true
+    bodyVelocity = Instance.new("BodyVelocity")
+    bodyVelocity.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+    bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+    bodyVelocity.Parent = rootPart
+    bodyGyro = Instance.new("BodyGyro")
+    bodyGyro.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
+    bodyGyro.CFrame = rootPart.CFrame
+    bodyGyro.Parent = rootPart
+    humanoid.PlatformStand = true
+end
+
+local function stopFlying()
+    flying = false
+    if bodyVelocity then bodyVelocity:Destroy() end
+    if bodyGyro then bodyGyro:Destroy() end
+    humanoid.PlatformStand = false
+end
+
+RunService.RenderStepped:Connect(function()
+    if flying and bodyVelocity then
+        local move = Vector3.new(0, 0, 0)
+        local cam = workspace.CurrentCamera
+        local forward = cam.CFrame.LookVector
+        local right = cam.CFrame.RightVector
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) then move += forward end
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) then move -= forward end
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) then move -= right end
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) then move += right end
+        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then move += Vector3.new(0, 1, 0) end
+        if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then move -= Vector3.new(0, 1, 0) end
+        bodyVelocity.Velocity = move * flySpeed
+        if bodyGyro then bodyGyro.CFrame = cam.CFrame end
+    end
+end)
+
+player.CharacterAdded:Connect(function(c)
+    character = c
+    humanoid = c:WaitForChild("Humanoid")
+    rootPart = c:WaitForChild("HumanoidRootPart")
+    if flying then startFlying() end
+end)
+
+-- Discord Tab
+local SettingsTab = Window:Tab({Title = "Discord", Icon = "ethernet-port"})
+
+local InviteCode = "QSPUjvbXZr"
+local DiscordAPI = "https://discord.com/api/v10/invites/" .. InviteCode .. "?with_counts=true&with_expiration=true"
+local Response
+local ErrorMessage = nil
+
+xpcall(function()
+    Response = game:GetService("HttpService"):JSONDecode(WindUI.Creator.Request({
+        Url = DiscordAPI,
+        Method = "GET",
+        Headers = { ["Accept"] = "application/json" }
+    }).Body)
+end, function(err)
+    ErrorMessage = tostring(err)
+    Response = nil
+end)
+
+local DiscordSection = SettingsTab:Section({Title = "Discord", Icon = "ethernet-port", Box = true, Opened = true, TextAlign = "Center"})
+local DiscordInfoParagraph
+local DINV1, DINVR1
+
+if Response and Response.guild then
+    DiscordInfoParagraph = DiscordSection:Paragraph({
+        Title = Response.guild.name,
+        Desc =
+            '<font color="#7B2CBF">-</font> Member Count: <font color="#121212">' .. tostring(Response.approximate_member_count) .. '</font>\n' ..
+            '<font color="#7B2CBF">-</font> Online Count: <font color="#121212">' .. tostring(Response.approximate_presence_count) .. '</font>',
+        Image = Response.guild.icon and
+            "https://cdn.discordapp.com/icons/" .. Response.guild.id .. "/" .. Response.guild.icon .. ".png?size=256" or
+            "users",
+        ImageSize = 42,
+        Thumbnail = Response.guild.banner and
+            "https://cdn.discordapp.com/banners/" .. Response.guild.id .. "/" .. Response.guild.banner .. ".png?size=480",
+        ThumbnailSize = Response.guild.banner and 80 or nil,
+    })
+
+    DINV1 = DiscordSection:Button({
+        Title = "Copy Discord Invite",
+        Justify = "Center",
+        IconAlign = "Right",
+        Icon = "link",
+        Callback = function()
+            DiscordInfoParagraph:Highlight()
+            DINV1:Highlight()
+            pcall(setclipboard, "https://discord.gg/" .. InviteCode)
+            WindUI:Notify({Title = "Copied!", Content = "Invite copied to clipboard", Duration = 3, Icon = "copy"})
+        end
+    })
+
+    DINVR1 = DiscordSection:Button({
+        Title = "Refresh Info",
+        Justify = "Center",
+        IconAlign = "Right",
+        Icon = "refresh-cw",
+        Callback = function()
+            DINVR1:Highlight()
+            WindUI:Notify({Title = "Refreshing...", Content = "Attempting to refresh information..", Duration = 3, Icon = "refresh-cw"})
+            xpcall(function()
+                local UpdatedResponse = game:GetService("HttpService"):JSONDecode(WindUI.Creator.Request({
+                    Url = DiscordAPI,
+                    Method = "GET",
+                }).Body)
+                if UpdatedResponse and UpdatedResponse.guild then
+                    DiscordInfoParagraph:SetDesc(
+                        '<font color="#121212">-</font> Member Count: <font color="#121212">' .. tostring(UpdatedResponse.approximate_member_count) .. '</font>\n' ..
+                        '<font color="#121212">-</font> Online Count: <font color="#121212">' .. tostring(UpdatedResponse.approximate_presence_count) .. '</font>'
+                    )
+                    DiscordInfoParagraph:Highlight()
+                    WindUI:Notify({Title = "Refreshed!", Content = "Server info updated", Duration = 3, Icon = "circle-check"})
+                end
+            end, function(err)
+                WindUI:Notify({Title = "Failed", Content = "Could not refresh info", Duration = 3, Icon = "circle-x"})
+            end)
+        end
+    })
+else
+    DiscordSection:Paragraph({
+        Title = "Failed to load Discord server",
+        Desc = ErrorMessage or "Unknown error or invite expired",
+        Image = "triangle-alert",
+        ImageSize = 32,
+    })
+end
+
+-- MAIN TAB
+local MainTab = Window:Tab({ Title = "Main", Icon = "house", Locked = false })
+
+local MainSection = MainTab:MultiSection({
+    Title = "Main Farm",
+    Sections = {{"Farm","fish"}, {"Settings","settings"}},
+    Icon = "house",
+    Opened = false
+})
+
+local autoFinishMode = "Fast Mode"
+
+MainSection.Settings:Dropdown({
+    Title = "Auto Finish Mode",
+    Values = {"Fast Mode", "Legit Mode"},
+    Flag = "autoFinishMode",
+    Value = "Fast Mode",
+    Multi = false,
+    Callback = function(opt) 
+        autoFinishMode = opt 
+        WindUI:Notify({
+            Title = "Auto Finish Mode",
+            Content = opt .. " activated",
+            Duration = 2,
+            Icon = "check"
+        })
+    end
+})
+
+MainSection.Settings:Dropdown({
+    Title = "Perfect Catch Mode",
+    Desc = "",
+    Flag = "perfectcatchmode",
+    Values = {"Yes", "No"},
+    Value = "No",
+    Multi = false,
+    Callback = function(selected)
+        if selected == "Yes" then
+            perfectCatchEnabled = true
+            WindUI:Notify({
+                Title = "Perfect Catch",
+                Content = "Enabled - Chance: " .. perfectCatchChance .. "%",
+                Duration = 4,
+                Icon = "sparkles"
+            })
+        else
+            perfectCatchEnabled = false
+            WindUI:Notify({
+                Title = "Perfect Catch",
+                Content = "Disabled - Normal catches",
+                Duration = 3,
+                Icon = "x"
+            })
+        end
+    end
+})
+
+MainSection.Settings:Slider({
+    Title = "Perfect Catch Chance",
+    Desc = "",
+    Flag = "perfectcatchchance",
+    Step = 1,
+    Value = {Min = 0, Max = 100, Default = 100},
+    Callback = function(value)
+        perfectCatchChance = value
+    end
+})
+
+MainSection.Settings:Divider()
+
+local instantBobber = false
+local bobberConnection = nil
+local bobberForward = -15
+local bobberDown = -4
+
+MainSection.Settings:Toggle({
+    Title = "Instant Bobber",
+    Desc = "",
+    Flag = "instantbobber",
+    Default = false,
+    Callback = function(state)
+        instantBobber = state
+        if state then
+            if bobberConnection then
+                bobberConnection:Disconnect()
+            end
+            bobberConnection = RunService.Heartbeat:Connect(function()
+                if not instantBobber then return end
+                pcall(function()
+                    local playerFolder = workspace:FindFirstChild(player.Name)
+                    if not playerFolder then return end
+                    local hrp = character:FindFirstChild("HumanoidRootPart")
+                    if not hrp then return end
+                    for _, rodModel in ipairs(playerFolder:GetChildren()) do
+                        if rodModel:IsA("Model") then
+                            local bobber = rodModel:FindFirstChild("bobber")
+                            if bobber and bobber:IsA("BasePart") then
+                                local frontPosition = hrp.CFrame * CFrame.new(0, bobberDown, bobberForward)
+                                bobber.CFrame = CFrame.new(frontPosition.Position)
+                                bobber.Velocity = Vector3.new(0, 0, 0)
+                                bobber.RotVelocity = Vector3.new(0, 0, 0)
+                            end
+                        end
+                    end
+                end)
+            end)
+            WindUI:Notify({
+                Title = "Instant Bobber",
+                Content = "Enabled - Bobber teleports instantly",
+                Duration = 3,
+                Icon = "zap"
+            })
+        else
+            if bobberConnection then
+                bobberConnection:Disconnect()
+                bobberConnection = nil
+            end
+            WindUI:Notify({
+                Title = "Instant Bobber",
+                Content = "Disabled",
+                Duration = 3,
+                Icon = "x"
+            })
+        end
+    end
+})
+
+MainSection.Settings:Space()
+
+MainSection.Settings:Slider({
+    Title = "Bobber Forward",
+    Desc = "",
+    Flag = "bobberforward",
+    Step = 1,
+    Value = {Min = -25, Max = 0, Default = -15},
+    Callback = function(value)
+        bobberForward = value
+    end
+})
+
+MainSection.Settings:Slider({
+    Title = "Bobber Down",
+    Desc = "",
+    Flag = "bobberdown",
+    Step = 1,
+    Value = {Min = -10, Max = 0, Default = -4},
+    Callback = function(value)
+        bobberDown = value
+    end
+})
+
+local lureParagraph = MainSection.Farm:Paragraph({
+    Title = "Lure: No Rod",
+    Desc = ""
+})
+
+task.spawn(function()
+    while task.wait() do
+        local currentLure = nil
+        pcall(function()
+            local playerFolder = workspace:FindFirstChild(player.Name)
+            if playerFolder then
+                for _, obj in ipairs(playerFolder:GetChildren()) do
+                    if obj:IsA("Model") and obj:FindFirstChild("values") and obj.values:FindFirstChild("lure") then
+                        currentLure = obj.values.lure.Value
+                        break
+                    end
+                end
+            end
+        end)
+        if currentLure then
+            if currentLure >= 100 then
+                lureParagraph:SetTitle("Lure: 100%")
+            else
+                lureParagraph:SetTitle("Lure: " .. currentLure .. "%")
+            end
+        else
+            lureParagraph:SetTitle("Lure: No Rod")
+        end
+    end
+end)
+
+MainSection.Farm:Divider()
+
+local autoEquip = false
+MainSection.Farm:Toggle({
+    Title = "Auto Equip",
+    Desc = "",
+    Flag = "autoEquip",
+    Default = false,
+    Callback = function(state)
+        autoEquip = state
+        if state then
+            task.spawn(function()
+                while autoEquip do
+                    local rod, _ = getCurrentRod()
+                    if not rod then
+                        local backpack = player:FindFirstChild("Backpack")
+                        if backpack then
+                            for _, tool in ipairs(backpack:GetChildren()) do
+                                if tool:IsA("Tool") and tool:FindFirstChild("events") then
+                                    tool.Parent = character
+                                    task.wait()
+                                    break
+                                end
+                            end
+                        end
+                    end
+                    task.wait()
+                end
+            end)
+            WindUI:Notify({
+                Title = "Auto Equip",
+                Content = "Enabled",
+                Duration = 3,
+                Icon = "check"
+            })
+        else
+            WindUI:Notify({
+                Title = "Auto Equip",
+                Content = "Disabled",
+                Duration = 3,
+                Icon = "x"
+            })
+        end
+    end
+})
+
+local autoCast = false
+local autoCastConnection = nil
+
+MainSection.Farm:Toggle({
+    Title = "Auto Cast",
+    Desc = "Automatically throws the rod",
+    Flag = "autocast",
+    Default = false,
+    Callback = function(state)
+        autoCast = state
+        if autoCastConnection then
+            autoCastConnection:Disconnect()
+            autoCastConnection = nil
+        end
+        if state then
+            local lastCastTime = 0
+            local castCooldown = 0.5
+            autoCastConnection = RunService.Heartbeat:Connect(function()
+                if not autoCast then return end
+                local currentTime = tick()
+                if currentTime - lastCastTime >= castCooldown then
+                    local rod, method = getCurrentRod()
+                    if rod and method then
+                        tryCast(rod, method, {100, 1})
+                        lastCastTime = currentTime
+                    end
+                end
+            end)
+            WindUI:Notify({
+                Title = "Auto Cast",
+                Content = "Enabled",
+                Duration = 3,
+                Icon = "check"
+            })
+        else
+            WindUI:Notify({
+                Title = "Auto Cast",
+                Content = "Disabled",
+                Duration = 3,
+                Icon = "x"
+            })
+        end
+    end
+})
+
+local autoShake = false
+MainSection.Farm:Toggle({
+    Title = "Auto Shake",
+    Flag = "autoshake",
+    Desc = "Automatically shakes",
+    Default = false,
+    Callback = function(state)
+        autoShake = state
+        task.spawn(function()
+            while autoShake do
+                local playerGui = player:FindFirstChild("PlayerGui")
+                if playerGui and playerGui:FindFirstChild("shakeui") then
+                    local btn = playerGui.shakeui.safezone:FindFirstChild("button")
+                    if btn and btn:FindFirstChild("shake") then
+                        pcall(function()
+                            btn.shake:FireServer()
+                        end)
+                    end
+                end
+                task.wait()
+            end
+        end)
+    end
+})
+
+MainSection.Farm:Toggle({
+    Title = "Auto Finish",
+    Desc = "Finishes reeling automatically",
+    Flag = "autofinish",
+    Default = false,
+    Callback = function(state)
+        autoFinish = state
+        if state then
+            if autoFinishMode == "Fast Mode" then
+                task.spawn(monitorLureFastMode)
+                task.spawn(function()
+                    while autoFinish do
+                        pcall(function()
+                            local gui = player.PlayerGui:FindFirstChild("reel")
+                            if gui then
+                                local bar = gui:FindFirstChild("bar")
+                                if bar and bar:FindFirstChild("playerbar") then
+                                    local pb = bar.playerbar
+                                    pb.Position = UDim2.new(0.5, 0, 0.5, 0)
+                                    pb.Size = UDim2.new(1, 0, 1.4, 0)
+                                end
+                            end
+                        end)
+                        task.wait()
+                    end
+                end)
+                WindUI:Notify({
+                    Title = "Auto Finish",
+                    Content = "Fast Mode enabled",
+                    Duration = 3,
+                    Icon = "zap"
+                })
+            elseif autoFinishMode == "Legit Mode" then
+                task.spawn(monitorLureLegitMode)
+                WindUI:Notify({
+                    Title = "Legit Mode",
+                    Content = "Fish hitbox enlarged - Reel manually!",
+                    Duration = 4,
+                    Icon = "fish"
+                })
+            end
+        else
+            WindUI:Notify({
+                Title = "Auto Finish",
+                Content = "Disabled",
+                Duration = 3,
+                Icon = "x"
+            })
+        end
+    end
+})
+
+MainSection.Farm:Space()
+
+MainSection.Farm:Toggle({
+    Title = "Freeze Position",
+    Desc = "Locks you in place",
+    Flag = "autofreeze",
+    Default = false,
+    Callback = function(state)
+        freezePosition = state
+        local hum = character:WaitForChild("Humanoid")
+        local root = character:WaitForChild("HumanoidRootPart")
+        if state then
+            hum.WalkSpeed = 0
+            hum.JumpPower = 0
+            freezeBodyPosition = Instance.new("BodyPosition")
+            freezeBodyPosition.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+            freezeBodyPosition.Position = root.Position
+            freezeBodyPosition.D = 5000
+            freezeBodyPosition.P = 30000
+            freezeBodyPosition.Parent = root
+            WindUI:Notify({Title = "Frozen!", Content = "Force-locked", Duration = 2, Icon = "lock"})
+        else
+            hum.WalkSpeed = 16
+            hum.JumpPower = 50
+            if freezeBodyPosition then freezeBodyPosition:Destroy() end
+            WindUI:Notify({Title = "Unfrozen!", Content = "Free movement", Duration = 2, Icon = "x"})
+        end
+    end
+})
+
+player.CharacterAdded:Connect(function(newChar)
+    character = newChar
+    humanoid = newChar:WaitForChild("Humanoid")
+    rootPart = newChar:WaitForChild("HumanoidRootPart")
+    if freezePosition and rootPart then
+        freezeBodyPosition = Instance.new("BodyPosition")
+        freezeBodyPosition.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+        freezeBodyPosition.Position = rootPart.Position
+        freezeBodyPosition.D = 5000
+        freezeBodyPosition.P = 30000
+        freezeBodyPosition.Parent = rootPart
+    end
+    if flying then 
+        startFlying() 
+    end
+end)
+
+MainSection.Farm:Space()
+
+local spearFishingAuto = false
+local spearRemote = game:GetService("ReplicatedStorage").packages.Net["RE/SpearFishing/Minigame"]
+
+MainSection.Farm:Toggle({
+    Title = "Generate Fishes",
+    Desc = "Must be in Lost Jungle",
+    Flag = "generatefishes",
+    Default = false,
+    Callback = function(state)
+        spearFishingAuto = state
+        if state then
+            WindUI:Notify({
+                Title = "Generating Fish",
+                Content = "Enabled",
+                Duration = 4,
+                Icon = "fish"
+            })
+            task.spawn(function()
+                while spearFishingAuto do
+                    pcall(function()
+                        local waterFolder = workspace:FindFirstChild("Spearfishing Water")
+                        if not waterFolder then return end
+                        for _, waterPart in ipairs(waterFolder:GetChildren()) do
+                            if waterPart.Name == "WaterPart" and waterPart:FindFirstChild("ZoneFish") then
+                                local zoneFish = waterPart.ZoneFish
+                                for _, obj in ipairs(zoneFish:GetDescendants()) do
+                                    local uid = obj:GetAttribute("UID")
+                                    if uid and typeof(uid) == "string" then
+                                        spearRemote:FireServer(uid)
+                                        task.wait(0.1)
+                                        spearRemote:FireServer(uid, true)
+                                        task.wait()
+                                    end
+                                end
+                            end
+                        end
+                    end)
+                    task.wait()
+                end
+            end)
+        else
+            WindUI:Notify({
+                Title = "Generating Fish",
+                Content = "Disabled",
+                Duration = 3,
+                Icon = "x"
+            })
+        end
+    end
+})
+
+-- TELEPORT TAB
+local TeleTab = Window:Tab({Title = "Teleport", Icon = "arrow-right-left", Locked = false})
+
+local TeleSection = TeleTab:MultiSection({
+    Title = "Teleport Options",
+    Sections = {{"Islands","map"}, {"Custom","crosshair"}, {"Saved","bookmark"}},
+    Icon = "map-pin",
+    Opened = false
+})
+
+local locationData = {
+    ["Altar"] = Vector3.new(1296, -805, -299),
+    ["Ancient Archives"] = Vector3.new(-3155, -755, 2193),
+    ["Ancient Archives Entrance"] = Vector3.new(5949, 155, 482),
+    ["Ancient Isle"] = Vector3.new(6056, 195, 279),
+    ["Angler Minigame"] = Vector3.new(-10085, -9662, 275),
+    ["Arch"] = Vector3.new(999, 131, -1237),
+    ["Atlantis"] = Vector3.new(-4265, -603, 1831),
+    ["Boss Arena"] = Vector3.new(-4356, -11092, 7154),
+    ["Boss Pool"] = Vector3.new(-2373, -11186, 7123),
+    ["Boss Queue"] = Vector3.new(-4351, -11186, 7406),
+    ["Bookshelves"] = Vector3.new(4237, -2235, -4679),
+    ["Brine"] = Vector3.new(-1794, -143, -3303),
+    ["Bunker"] = Vector3.new(1792, -328, -2390),
+    ["Bunker 1"] = Vector3.new(1738, 143, -2435),
+    ["Calm Zone Innkeeper"] = Vector3.new(-4256, -11202, 1776),
+    ["Camp 1"] = Vector3.new(20208, 208, 5279),
+    ["Camp 2"] = Vector3.new(19757, 415, 5407),
+    ["Castaway Cliffs"] = Vector3.new(667, 164, -1830),
+    ["Chess Puzzle"] = Vector3.new(-4313, -11172, 4102),
+    ["Collapsed Ruins"] = Vector3.new(3134, -1097, 1623),
+    ["Coral Bastion"] = Vector3.new(2552, -1093, 852),
+    ["Crafting"] = Vector3.new(-3160, -746, 1684),
+    ["Crimson Cavern"] = Vector3.new(-1036.9, -357, -4800.3),
+    ["Crowned Ruins"] = Vector3.new(3129, -1122, 2039),
+    ["Crystal Cove"] = Vector3.new(1362, -613, 2461),
+    ["Crypt"] = Vector3.new(1537, -1693, 6358),
+    ["Crypt Exit"] = Vector3.new(129, 150, 2043),
+    ["Cultist Lair"] = Vector3.new(4374, -2003, -4675),
+    ["Deep"] = Vector3.new(-1511, -235, -2853),
+    ["Deep Shop"] = Vector3.new(-979, -245, -2700),
+    ["Desolate Pocket"] = Vector3.new(-1655, -214, -2846),
+    ["Enchant Altar"] = Vector3.new(1310, -805, -100),
+    ["Ethereal Puzzle"] = Vector3.new(-4122, -602, 1821),
+    ["Executive"] = Vector3.new(-35, -247, 201),
+    ["Final Puzzle"] = Vector3.new(19964, 1138, 5402),
+    ["Forsaken"] = Vector3.new(-2498, 137, 1625),
+    ["Gamma"] = Vector3.new(2233, -804, 1021),
+    ["Grand Reef"] = Vector3.new(-3566, 150, 535),
+    ["Hall of Whisper"] = Vector3.new(4195, -1997, -4679),
+    ["Hallway of Whispers"] = Vector3.new(4401, -2235, -4680),
+    ["Harvesters Spike"] = Vector3.new(-1255, 138, 1554),
+    ["Ice Puzzle"] = Vector3.new(19233, 396, 6010),
+    ["Inner Tidefall Castle"] = Vector3.new(4364, -1095, 925),
+    ["Kraken Door"] = Vector3.new(-4329, -875, 1741),
+    ["Kraken Puzzle 1"] = Vector3.new(-4352, -627, 2703),
+    ["Kraken Puzzle 2"] = Vector3.new(-3806, -567, 1835),
+    ["Kraken Puzzle 3"] = Vector3.new(-4283, -684, 1112),
+    ["Kraken Puzzle 4"] = Vector3.new(-4957, -584, 1871),
+    ["Kraken Puzzle 5"] = Vector3.new(-4290, -973, 1870),
+    ["Lever Puzzle"] = Vector3.new(19956, 587, 5572),
+    ["Lost Jungle"] = Vector3.new(-2713, 150, -2059),
+    ["Luminescent Cavern"] = Vector3.new(-1005.3, -329, -4080.2),
+    ["Merlin"] = Vector3.new(-949, 222, -986),
+    ["Mineshaft"] = Vector3.new(-705, -865, -108),
+    ["Moosewood"] = Vector3.new(385, 135, 245),
+    ["Mountain Start"] = Vector3.new(19559, 133, 5301),
+    ["Mushgrove Swamp"] = Vector3.new(2502, 131, -721),
+    ["Mysterious River"] = Vector3.new(-1015, -320, -4014),
+    ["North"] = Vector3.new(19528, 133, 5294),
+    ["North Glider"] = Vector3.new(20241, 757, 5756),
+    ["Oil Rig"] = Vector3.new(-1901, 225, -486),
+    ["Passage of Oaths"] = Vector3.new(4280, -2483, -4680),
+    ["Peak"] = Vector3.new(19998, 1136, 5520),
+    ["Phantom"] = Vector3.new(253, 800, -6865),
+    ["Podium 1"] = Vector3.new(-3464, -2258, 3834),
+    ["Podium 2"] = Vector3.new(-826, -3274, -710),
+    ["Podium 3"] = Vector3.new(-13488, -11050, 134),
+    ["Podium 4"] = Vector3.new(-4333, -11183, 3196),
+    ["Poseidon Puzzle"] = Vector3.new(-3695, -547, 1014),
+    ["Roslit Hamlet"] = Vector3.new(-1476, 134, 672),
+    ["Roslit Submarine"] = Vector3.new(-1332, 125, 313),
+    ["Roslit Volcano"] = Vector3.new(-1889, 168, 329),
+    ["Sanctum"] = Vector3.new(4369, -2710, -4674),
+    ["Snowcap Island"] = Vector3.new(2649, 142, 2521),
+    ["Statue Of Sovereignty"] = Vector3.new(71, 150, -1029.6),
+    ["Sunken Cave"] = Vector3.new(-5137, -705, 1711),
+    ["Sunken Panel"] = Vector3.new(-4615, -597, 1843),
+    ["Sunken Puzzle"] = Vector3.new(-4855, -595, 1841),
+    ["Sunken Reliquary"] = Vector3.new(2963, -1095, 341),
+    ["Sunstone Island"] = Vector3.new(-932, 131, -1116),
+    ["Sovereignty Mines"] = Vector3.new(-22, 140, -1123),
+    ["Tavern"] = Vector3.new(556, 309, -2069),
+    ["Terrapin"] = Vector3.new(-141, 145, 1912),
+    ["The Depths"] = Vector3.new(568, -704, 1231),
+    ["The Depths Entrance"] = Vector3.new(11, -706, 1231),
+    ["The Depths Maze End"] = Vector3.new(1684, -902, 1441),
+    ["The Depths Maze Exit"] = Vector3.new(978, -701, 1254),
+    ["The Depths Obby"] = Vector3.new(67, -705, 1231),
+    ["Tidefall"] = Vector3.new(3141, -1095, 756),
+    ["Tidefall Castle"] = Vector3.new(3916, -1092, 909),
+    ["Treasure Island"] = Vector3.new(8390.8, 200, -17307.1),
+    ["Trident"] = Vector3.new(-1479, -226, -2391),
+    ["Upper Snowcap"] = Vector3.new(2938, 281, 2567),
+    ["Veil Of The Forsaken"] = Vector3.new(-2357, -11190, 7139),
+    ["Vertigo"] = Vector3.new(-112, -515, 1040),
+    ["Zeus Puzzle"] = Vector3.new(-4296, -673, 2354),
+}
+
+local locations = {}
+for name, _ in pairs(locationData) do
+    table.insert(locations, name)
+end
+table.sort(locations)
+
+local selectedLocation = locations[1]
+
+TeleSection.Islands:Dropdown({
+    Title = "Select Location",
+    Desc = "",
+    Flag = "selectlocation",
+    Values = locations,
+    Value = locations[1],
+    SearchBarEnabled = true,
+    Multi = false,
+    AllowNone = false,
+    Callback = function(option)
+        selectedLocation = option
+    end
+})
+
+TeleSection.Islands:Button({
+    Title = "Teleport",
+    Justify = "Center",
+    IconAlign = "Right",
+    Desc = "",
+    Icon = "zap",
+    Callback = function()
+        local pos = locationData[selectedLocation]
+        if pos then
+            local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                hrp.CFrame = CFrame.new(pos)
+                WindUI:Notify({
+                    Title = "Teleported!",
+                    Content = "Arrived at " .. selectedLocation,
+                    Duration = 3,
+                    Icon = "check"
+                })
+            else
+                WindUI:Notify({
+                    Title = "Error",
+                    Content = "Character not loaded!",
+                    Duration = 3,
+                    Icon = "x"
+                })
+            end
+        else
+            WindUI:Notify({
+                Title = "Error",
+                Content = "Location not found!",
+                Duration = 3,
+                Icon = "x"
+            })
+        end
+    end
+})
+
+local coordinateInput = TeleSection.Custom:Input({
+    Title = "Custom Coordinates",
+    Desc = "",
+    Flag = "customcoordinates",
+    Value = "",
+    InputIcon = "map-pin",
+    Type = "Input",
+    Placeholder = "x, y, z",
+    Callback = function(textVal) end
+})
+
+TeleSection.Custom:Button({
+    Title = "Teleport to Typed Coords",
+    Justify = "Center",
+    IconAlign = "Right",
+    Desc = "",
+    Icon = "check",
+    Callback = function()
+        local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+        if not hrp then
+            WindUI:Notify({
+                Title = "Error",
+                Content = "Character not loaded!",
+                Duration = 3,
+                Icon = "x"
+            })
+            return
+        end
+        local textVal = coordinateInput.Value or ""
+        local x, y, z = textVal:match("([^,]+),%s*([^,]+),%s*([^,]+)")
+        if not x or not y or not z then
+            WindUI:Notify({
+                Title = "Invalid Format",
+                Content = "Use: 456, -23, 90",
+                Duration = 4,
+                Icon = "alert-triangle"
+            })
+            return
+        end
+        x, y, z = tonumber(x), tonumber(y), tonumber(z)
+        if not x or not y or not z then
+            WindUI:Notify({
+                Title = "Error",
+                Content = "Coordinates must be numbers.",
+                Duration = 3,
+                Icon = "x"
+            })
+            return
+        end
+        hrp.CFrame = CFrame.new(x, y, z)
+        WindUI:Notify({
+            Title = "Teleported!",
+            Content = "Moved to (" .. x .. ", " .. y .. ", " .. z .. ")",
+            Duration = 3,
+            Icon = "check"
+        })
+    end
+})
+
+-- Saved coordinates system
+local savedCoordinates = {}
+local selectedSavedPlace = nil
+local autoTeleportEnabled = false
+local placeName = ""
+local SAVED_PLACES_KEY = "Xarxynth_SavedPlaces_Data"
+
+local function savePlacesToConfig()
+    local configData = {}
+    for name, cframe in pairs(savedCoordinates) do
+        table.insert(configData, {
+            name = name,
+            cf = cframe
+        })
+    end
+    getgenv()[SAVED_PLACES_KEY] = configData
+end
+
+local function loadPlacesFromConfig()
+    if getgenv()[SAVED_PLACES_KEY] then
+        local configData = getgenv()[SAVED_PLACES_KEY]
+        for _, item in ipairs(configData) do
+            if item.name and item.cf then
+                savedCoordinates[item.name] = item.cf
+            end
+        end
+    end
+end
+
+loadPlacesFromConfig()
+
+local savedPlacesDropdown = TeleSection.Saved:Dropdown({
+    Title = "Saved Places",
+    Desc = "",
+    Flag = "savedplacesdropdown",
+    Values = {},
+    Value = nil,
+    SearchBarEnabled = true,
+    Multi = false,
+    AllowNone = true,
+    Callback = function(option)
+        selectedSavedPlace = option
+    end
+})
+
+local function refreshSavedPlacesDropdown()
+    local placeNames = {}
+    for name, _ in pairs(savedCoordinates) do
+        table.insert(placeNames, name)
+    end
+    table.sort(placeNames)
+    savedPlacesDropdown:Refresh(placeNames)
+end
+
+refreshSavedPlacesDropdown()
+
+TeleSection.Saved:Space()
+
+TeleSection.Saved:Input({
+    Title = "Place Name",
+    Desc = "",
+    Flag = "customplacename",
+    Value = "",
+    InputIcon = "map-pin",
+    Type = "Input",
+    Placeholder = "Enter place name...",
+    Callback = function(textVal)
+        placeName = textVal
+    end
+})
+
+TeleSection.Saved:Button({
+    Title = "Save Current Position",
+    Justify = "Center",
+    IconAlign = "Right",
+    Desc = "",
+    Flag = "savecurrentposition",
+    Icon = "map-pin-plus",
+    Callback = function()
+        local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+        if not hrp then
+            WindUI:Notify({
+                Title = "Error",
+                Content = "Character not loaded!",
+                Duration = 3,
+                Icon = "x"
+            })
+            return
+        end
+        local count = 0
+        for _ in pairs(savedCoordinates) do
+            count = count + 1
+        end
+        local finalName = placeName and placeName ~= "" and placeName or "Place " .. (count + 1)
+        savedCoordinates[finalName] = hrp.CFrame
+        savePlacesToConfig()
+        refreshSavedPlacesDropdown()
+        WindUI:Notify({
+            Title = "Position Saved!",
+            Content = "Saved as '" .. finalName .. "'",
+            Duration = 3,
+            Icon = "check"
+        })
+        placeName = ""
+    end
+})
+
+TeleSection.Saved:Space()
+
+TeleSection.Saved:Button({
+    Title = "Teleport to Selected",
+    Justify = "Center",
+    IconAlign = "Right",
+    Desc = "",
+    Flag = "teleporttosaved",
+    Icon = "navigation",
+    Callback = function()
+        if not selectedSavedPlace or selectedSavedPlace == "" then
+            WindUI:Notify({
+                Title = "Error",
+                Content = "No place selected!",
+                Duration = 3,
+                Icon = "x"
+            })
+            return
+        end
+        local cframe = savedCoordinates[selectedSavedPlace]
+        if not cframe then
+            WindUI:Notify({
+                Title = "Error",
+                Content = "Place not found!",
+                Duration = 3,
+                Icon = "x"
+            })
+            return
+        end
+        local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+        if not hrp then
+            WindUI:Notify({
+                Title = "Error",
+                Content = "Character not loaded!",
+                Duration = 3,
+                Icon = "x"
+            })
+            return
+        end
+        hrp.CFrame = cframe
+        WindUI:Notify({
+            Title = "Teleported!",
+            Content = "Arrived at " .. selectedSavedPlace,
+            Duration = 3,
+            Icon = "check"
+        })
+    end
+})
+
+TeleSection.Saved:Toggle({
+    Title = "Auto Teleport to Selected",
+    Desc = "",
+    Flag = "autoteleporttosaved",
+    Default = false,
+    Callback = function(state)
+        autoTeleportEnabled = state
+        if state then
+            if not selectedSavedPlace or selectedSavedPlace == "" then
+                WindUI:Notify({
+                    Title = "Error",
+                    Content = "Select a place first!",
+                    Duration = 3,
+                    Icon = "x"
+                })
+                autoTeleportEnabled = false
+                return
+            end
+            local cframe = savedCoordinates[selectedSavedPlace]
+            if not cframe then
+                WindUI:Notify({
+                    Title = "Error",
+                    Content = "Place not found!",
+                    Duration = 3,
+                    Icon = "x"
+                })
+                autoTeleportEnabled = false
+                return
+            end
+            task.spawn(function()
+                while autoTeleportEnabled do
+                    local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                    if hrp and savedCoordinates[selectedSavedPlace] then
+                        hrp.CFrame = savedCoordinates[selectedSavedPlace]
+                    end
+                    task.wait(0.1)
+                end
+            end)
+            WindUI:Notify({
+                Title = "Auto Teleport",
+                Content = "Enabled to " .. selectedSavedPlace,
+                Duration = 3,
+                Icon = "repeat"
+            })
+        else
+            WindUI:Notify({
+                Title = "Auto Teleport",
+                Content = "Disabled",
+                Duration = 3,
+                Icon = "x"
+            })
+        end
+    end
+})
+
+TeleSection.Saved:Button({
+    Title = "Delete Selected Place",
+    Justify = "Center",
+    IconAlign = "Right",
+    Desc = "",
+    Flag = "deletesavedplace",
+    Icon = "trash-2",
+    Color = "Red",
+    Callback = function()
+        if not selectedSavedPlace or selectedSavedPlace == "" then
+            WindUI:Notify({
+                Title = "Error",
+                Content = "No place selected!",
+                Duration = 3,
+                Icon = "x"
+            })
+            return
+        end
+        savedCoordinates[selectedSavedPlace] = nil
+        savePlacesToConfig()
+        refreshSavedPlacesDropdown()
+        WindUI:Notify({
+            Title = "Deleted!",
+            Content = "Removed '" .. selectedSavedPlace .. "'",
+            Duration = 3,
+            Icon = "trash-2"
+        })
+        selectedSavedPlace = nil
+    end
+})
+
+-- Event Section
+local EventSection = TeleTab:Section({Title = "Events", Icon = "map-pin", Box = true, Opened = false})
+local locationData2 = {
+    ["Northstar Castle"] = Vector3.new(-7505, 187, -17641),
+    ["Toy Factory"] = Vector3.new(-8076, 191, -17836),
+    ["Cyro Serpent"] = Vector3.new(-7465, -733, -17918),
+    ["The Hatch"] = Vector3.new(-7799, 173, -17810),
+    ["Northstar Station"] = Vector3.new(-6715, 160, -18141),
+    ["Glacial Ridge"] = Vector3.new(-7104, 191, -17955),
+    ["Northstar Village"] = Vector3.new(-7818, 175, -17697),
+}
+
+local locations2 = {}
+for name, _ in pairs(locationData2) do
+    table.insert(locations2, name)
+end
+table.sort(locations2)
+
+local selectedLocation2 = locations2[1]
+
+EventSection:Dropdown({
+    Title = "Select Location",
+    Desc = "",
+    Values = locations2,
+    Value = locations2[1],
+    SearchBarEnabled = true,
+    Multi = false,
+    AllowNone = false,
+    Callback = function(option)
+        selectedLocation2 = option
+    end
+})
+
+EventSection:Button({
+    Title = "Teleport",
+    Justify = "Center",
+    IconAlign = "Right",
+    Desc = "",
+    Icon = "zap",
+    Callback = function()
+        local pos = locationData2[selectedLocation2]
+        if pos then
+            local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                hrp.CFrame = CFrame.new(pos)
+                WindUI:Notify({
+                    Title = "Teleported!",
+                    Content = "Arrived at " .. selectedLocation2,
+                    Duration = 3,
+                    Icon = "check"
+                })
+            else
+                WindUI:Notify({
+                    Title = "Error",
+                    Content = "Character not loaded!",
+                    Duration = 3,
+                    Icon = "x"
+                })
+            end
+        else
+            WindUI:Notify({
+                Title = "Error",
+                Content = "Location not found!",
+                Duration = 3,
+                Icon = "x"
+            })
+        end
+    end
+})
+
+-- Server Code Join Section
+local ServerJoinSection = TeleTab:Section({Title = "Join Server by Code", Icon = "key", Box = true, Opened = false})
+local serverCodeInput = ""
+
+ServerJoinSection:Input({
+    Title = "Server Code",
+    Desc = "",
+    Flag = "servercode",
+    Value = "",
+    InputIcon = "hash",
+    Type = "Input",
+    Placeholder = "Job Id",
+    Callback = function(textVal)
+        serverCodeInput = textVal
+    end
+})
+
+ServerJoinSection:Button({
+    Title = "Join Server",
+    Justify = "Center",
+    IconAlign = "Right",
+    Desc = "",
+    Icon = "check",
+    Callback = function()
+        if not serverCodeInput or serverCodeInput == "" then
+            WindUI:Notify({
+                Title = "Error",
+                Content = "Please enter a server code first!",
+                Duration = 4,
+                Icon = "x"
+            })
+            return
+        end
+        local cleanCode = serverCodeInput:gsub("%s+", ""):gsub('"', ""):gsub("'", ""):gsub("`", "")
+        WindUI:Notify({
+            Title = "Joining Server...",
+            Content = "Attempting to join: " .. cleanCode,
+            Duration = 5,
+            Icon = "loader"
+        })
+        local TeleportService = game:GetService("TeleportService")
+        local placeId = game.PlaceId
+        pcall(function()
+            TeleportService:TeleportToPlaceInstance(placeId, cleanCode, player)
+        end)
+        task.wait(2)
+        WindUI:Notify({
+            Title = "Joining...",
+            Content = "If nothing happens, the code may be invalid or server is full",
+            Duration = 5,
+            Icon = "alert-triangle"
+        })
+    end
+})
+
+-- Automation Tab
+local AutomationTab = Window:Tab({
+    Title = "Automation",
+    Icon = "mouse",
+    Locked = false,
+})
+
+local AutomationMulti = AutomationTab:MultiSection({
+    Title = "Auto Totems",
+    Icon = "zap",
+    Sections = {{"Use", "mouse-pointer-click"}, {"Buy", "barrel"}},
+    Opened = false
+})
+
+local share = share or {}
+share.LastCycle = share.LastCycle or ""
+share.TotemInUse = share.TotemInUse or false
+share.AutoTotemToggle = share.AutoTotemToggle or false
+
+local TotemList = {
+    "None",
+    "Sundial Totem", "Aurora Totem", "Tempest Totem", "Smokescreen Totem",
+    "Windset Totem", "Eclipse Totem", "Meteor Totem", "Blizzard Totem",
+    "Avalanche Totem", "Zeus Storm Totem", "Poseidon's Wrath Totem", "Sparkling Totem"
+}
+
+AutomationMulti.Use:Dropdown({
+    Title = "Day Totem",
+    Desc = "",
+    Flag = "daytotem",
+    Values = TotemList,
+    Value = "None",
+    SearchBarEnabled = true,
+    Multi = false,
+    Callback = function(selected)
+        share.SelectedDayTotem = selected
+    end
+})
+
+AutomationMulti.Use:Dropdown({
+    Title = "Night Totem",
+    Flag = "nighttotem",
+    Desc = "",
+    Values = TotemList,
+    Value = "None",
+    SearchBarEnabled = true,
+    Multi = false,
+    Callback = function(selected)
+        share.SelectedNightTotem = selected
+    end
+})
+
+AutomationMulti.Use:Space()
+
+AutomationMulti.Use:Toggle({
+    Title = "Auto Totem",
+    Desc = "",
+    Flag = "autototem",
+    Default = false,
+    Callback = function(enabled)
+        share.AutoTotemToggle = enabled
+        if not enabled then return end
+        task.spawn(function()
+            while share.AutoTotemToggle do
+                task.wait(1)
+                local cycle = ReplicatedStorage.world.cycle.Value
+                local totemName = share["Selected" .. cycle .. "Totem"]
+                if not totemName or totemName == "" or totemName == "None" then
+                    share.LastCycle = cycle
+                    continue
+                end
+                if cycle ~= share.LastCycle then
+                    local totemUsed = false
+                    while share.AutoTotemToggle and not totemUsed do
+                        if ReplicatedStorage.world.cycle.Value ~= cycle then
+                            break
+                        end
+                        if not player.Backpack:FindFirstChild(totemName) then
+                            WindUI:Notify({
+                                Title = "Auto Totem",
+                                Content = totemName .. " not found!",
+                                Duration = 3,
+                                Icon = "x"
+                            })
+                            break
+                        end
+                        pcall(function()
+                            local hum = player.Character:FindFirstChildOfClass("Humanoid")
+                            if hum then hum:UnequipTools() end
+                            task.wait(0.2)
+                            local totemTool = player.Backpack:FindFirstChild(totemName)
+                            if totemTool then 
+                                totemTool.Parent = player.Character
+                                task.wait(0.3)
+                            end
+                            local activeTotem = workspace[player.Name]:FindFirstChild(totemName)
+                            if activeTotem then 
+                                activeTotem:Activate()
+                                totemUsed = true
+                            end
+                            task.wait(0.2)
+                            if hum then hum:UnequipTools() end
+                        end)
+                        if not totemUsed then
+                            task.wait(2)
+                        end
+                    end
+                    share.LastCycle = cycle
+                end
+            end
+        end)
+    end
+})
+
+local totemList = {
+    "Aurora Totem",
+    "Sundial Totem",
+    "Avalanche Totem",
+    "Windset Totem",
+    "Smokescreen Totem",
+    "Tempest Totem",
+    "Eclipse Totem",
+    "Meteor Totem",
+    "Blizzard Totem",
+    "Zeus Storm Totem"
+}
+
+local selectedTotem = totemList[1]
+local totemAmount = 1
+
+AutomationMulti.Buy:Dropdown({
+    Title = "Select Totem",
+    Desc = "",
+    Flag = "selecttotem",
+    Values = totemList,
+    Value = totemList[1],
+    SearchBarEnabled = true,
+    Multi = false,
+    AllowNone = false,
+    Callback = function(option)
+        selectedTotem = option
+    end
+})
+
+AutomationMulti.Buy:Space()
+
+AutomationMulti.Buy:Slider({
+    Title = "Amount",
+    Desc = "",
+    Flag = "totemamounttobuy",
+    Step = 1,
+    Value = {Min = 1, Max = 50, Default = 1},
+    Callback = function(value)
+        totemAmount = value
+    end
+})
+
+AutomationMulti.Buy:Button({
+    Title = "Buy Selected Totem",
+    Justify = "Center",
+    IconAlign = "Right",
+    Desc = "",
+    Icon = "shopping-cart",
+    Callback = function()
+        if not selectedTotem then
+            WindUI:Notify({Title = "Error", Content = "No totem selected!", Duration = 3, Icon = "x"})
+            return
+        end
+        local purchaseRemote = game:GetService("ReplicatedStorage").events.purchase
+        if not purchaseRemote then
+            WindUI:Notify({Title = "Error", Content = "Purchase remote not found!", Duration = 4, Icon = "alert-triangle"})
+            return
+        end
+        pcall(function()
+            purchaseRemote:FireServer(selectedTotem, "Item", nil, totemAmount)
+        end)
+    end
+})
+
+AutomationMulti.Buy:Divider()
+
+local totemInterval = 1
+AutomationMulti.Buy:Input({
+    Title = "Seconds",
+    Desc = "",
+    Flag = "toteminterval",
+    Value = "1",
+    InputIcon = "clock",
+    Type = "Input",
+    Placeholder = "Enter seconds...",
+    Callback = function(textVal)
+        local num = tonumber(textVal)
+        if num and num > 0 then
+            totemInterval = num
+        end
+    end
+})
+
+local autoTotemBuy = false
+AutomationMulti.Buy:Toggle({
+    Title = "Auto Buy Totem",
+    Desc = "",
+    Flag = "autobuytotemtoggle",
+    Default = false,
+    Callback = function(state)
+        autoTotemBuy = state
+        if state then
+            task.spawn(function()
+                while autoTotemBuy do
+                    pcall(function()
+                        game:GetService("ReplicatedStorage").events.purchase:FireServer(
+                            selectedTotem, "Item", nil, totemAmount
+                        )
+                    end)
+                    task.wait(totemInterval)
+                end
+            end)
+            WindUI:Notify({
+                Title = "Auto Buy",
+                Content = "Buying " .. selectedTotem .. " every " .. totemInterval .. "s",
+                Duration = 4,
+                Icon = "check"
+            })
+        end
+    end
+})
+
+-- Star Crater Section
+local StarCraterSection = AutomationTab:Section({
+    Title = "Auto Starfall",
+    Icon = "star",
+    Box = true,
+    Opened = false
+})
+
+local starCraterParagraph = StarCraterSection:Paragraph({
+    Title = "Starfalls: 0",
+    Desc = ""
+})
+
+StarCraterSection:Space()
+
+task.spawn(function()
+    while task.wait(1) do
+        local count = 0
+        pcall(function()
+            for _, obj in ipairs(workspace:GetChildren()) do
+                if obj.Name == "StarCrater" then
+                    count = count + 1
+                end
+            end
+        end)
+        starCraterParagraph:SetTitle("Star Craters: " .. count)
+    end
+end)
+
+local selectedCraterItems = {}
+local autoStarCrater = false
+
+StarCraterSection:Dropdown({
+    Title = "Select Items",
+    Desc = "",
+    Flag = "starfallselecteditemsdropdown",
+    Values = {"Basalt", "Rock", "Enchant Relic", "Cosmic Relic", "Starfall Totem"},
+    Value = {},
+    SearchBarEnabled = true,
+    Multi = true,
+    AllowNone = true,
+    Callback = function(selected)
+        selectedCraterItems = selected
+    end
+})
+
+StarCraterSection:Toggle({
+    Title = "Auto Star Crater",
+    Desc = "",
+    Flag = "autostarfalltoggle",
+    Default = false,
+    Callback = function(state)
+        autoStarCrater = state
+        if state then
+            WindUI:Notify({
+                Title = "Auto Starfalls",
+                Content = "Enabled - Teleporting to craters...",
+                Duration = 3,
+                Icon = "star"
+            })
+            task.spawn(function()
+                while autoStarCrater do
+                    if #selectedCraterItems == 0 then
+                        task.wait(1)
+                        continue
+                    end
+                    local foundAny = false
+                    for _, starCrater in ipairs(workspace:GetChildren()) do
+                        if not autoStarCrater then break end
+                        if starCrater.Name == "StarCrater" then
+                            for _, selectedItem in ipairs(selectedCraterItems) do
+                                if not autoStarCrater then break end
+                                local itemFolder = starCrater:FindFirstChild(selectedItem)
+                                if itemFolder then
+                                    local center = itemFolder:FindFirstChild("Center")
+                                    if center and center:IsA("BasePart") then
+                                        foundAny = true
+                                        local hrp = character:FindFirstChild("HumanoidRootPart")
+                                        if hrp then
+                                            hrp.CFrame = center.CFrame
+                                            task.wait(0.5)
+                                            local proximityPrompt = center:FindFirstChild(selectedItem)
+                                            if proximityPrompt and proximityPrompt:IsA("ProximityPrompt") then
+                                                pcall(function()
+                                                    fireproximityprompt(proximityPrompt)
+                                                end)
+                                                WindUI:Notify({
+                                                    Title = "Collected!",
+                                                    Content = selectedItem .. " collected",
+                                                    Duration = 2,
+                                                    Icon = "check"
+                                                })
+                                                task.wait(0.5)
+                                            end
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end
+                    task.wait(0.5)
+                end
+            end)
+        else
+            WindUI:Notify({
+                Title = "Auto Starfalls",
+                Content = "Disabled",
+                Duration = 3,
+                Icon = "x"
+            })
+        end
+    end
+})
+
+local AutoFillionareSection = AutomationTab:Section({
+    Title = "Auto Fillionare",
+    Icon = "coins",
+    Box = true,
+    Opened = false
+})
+
+AutoFillionareSection:Toggle({
+    Title = "Auto Use Fillionaire",
+    Desc = "",
+    Flag = "autousefillionaretoggle",
+    Default = false,
+    Callback = function(Value)
+        _G.AutoUseFillionaire = Value
+        if Value then
+            WindUI:Notify({
+                Title = "Auto Use Fillionaire",
+                Content = "Enabled",
+                Duration = 3,
+                Icon = "grid-3x3"
+            })
+        else
+            WindUI:Notify({
+                Title = "Auto Use Fillionaire",
+                Content = "Disabled",
+                Duration = 3,
+                Icon = "x"
+            })
+        end
+    end
+})
+
+spawn(function()
+    while task.wait(0.1) do
+        if _G.AutoUseFillionaire then
+            pcall(function()
+                local hum = character and character:FindFirstChildOfClass("Humanoid")
+                if hum then
+                    hum:UnequipTools()
+                    local fillionaire = player.Backpack:FindFirstChild("Fillionaire")
+                    if fillionaire then
+                        local fillionaireLink = tostring(fillionaire.link.Value)
+                        local fillionaireAmount = ReplicatedStorage.playerstats[player.Name].Inventory[fillionaireLink].Stack.Value
+                        for _ = 1, fillionaireAmount do
+                            hum:EquipTool(fillionaire)
+                            task.wait(0.1)
+                        end
+                        task.wait(1)
+                        local mainGui = player.PlayerGui.Fillionaire.Main
+                        for _, child in ipairs(mainGui:GetChildren()) do
+                            if child.Name == "Template" and child.Visible then
+                                local playerNumbers = child:FindFirstChild("PlayerNumbers")
+                                if playerNumbers then
+                                    for i = 1, 4 do
+                                        local numberButton = playerNumbers:FindFirstChild(tostring(i))
+                                        if numberButton and numberButton:IsA("GuiButton") then
+                                            if getconnections then
+                                                for _, v in pairs(getconnections(numberButton.MouseButton1Click)) do
+                                                    v:Invoke()
+                                                end
+                                            else
+                                                firesignal(numberButton.MouseButton1Click)
+                                            end
+                                        end
+                                    end
+                                end
+                                task.wait(0.1)
+                                child:Destroy()
+                            end
+                        end
+                    end
+                end
+            end)
+        end
+    end
+end)
+
+local TreasuremapSection = AutomationTab:Section({
+    Title = "Treasure Map",
+    Icon = "map",
+    Box = true,
+    Opened = false
+})
+
+TreasuremapSection:Toggle({
+    Title = "Auto Collect Treasure",
+    Desc = "",
+    Flag = "autocollecttreasuretoggle",
+    Default = false,
+    Callback = function(Value)
+        _G.AutoCollectTreasure = Value
+        if Value then
+            WindUI:Notify({
+                Title = "Auto Collect Treasure",
+                Content = "Enabled",
+                Duration = 3,
+                Icon = "package"
+            })
+        else
+            WindUI:Notify({
+                Title = "Auto Collect Treasure",
+                Content = "Disabled",
+                Duration = 3,
+                Icon = "x"
+            })
+        end
+    end
+})
+
+spawn(function()
+    local lastCollectionTime = 0
+    while task.wait(1) do
+        if _G.AutoCollectTreasure and tick() - lastCollectionTime >= 2 then
+            pcall(function()
+                local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                if not hrp then return end
+                for _, v in pairs(workspace.world.chests:GetChildren()) do
+                    if v:IsA("Part") and v:FindFirstChild("ChestSetup") then
+                        hrp.CFrame = v.CFrame
+                        local prompt = v:FindFirstChildOfClass("ProximityPrompt")
+                        if prompt then
+                            prompt.HoldDuration = 0
+                            fireproximityprompt(prompt)
+                        end
+                        task.wait(0.5)
+                        lastCollectionTime = tick()
+                    end
+                end
+            end)
+        end
+    end
+end)
+
+TreasuremapSection:Toggle({
+    Title = "Auto Treasure Map",
+    Desc = "",
+    Flag = "autotreasuremapfixtoggle",
+    Default = false,
+    Callback = function(Value)
+        _G.AutoFully = Value
+        if Value then
+            WindUI:Notify({
+                Title = "Auto Treasure Map",
+                Content = "Enabled",
+                Duration = 3,
+                Icon = "map"
+            })
+        else
+            WindUI:Notify({
+                Title = "Auto Treasure Map",
+                Content = "Disabled",
+                Duration = 3,
+                Icon = "x"
+            })
+        end
+    end
+})
+
+spawn(function()
+    while task.wait(0.1) do
+        if _G.AutoFully and _G.AutoCollectTreasure then
+            pcall(function()
+                for _, v in pairs(player.Backpack:GetChildren()) do 
+                    if v.Name == "Treasure Map" then
+                        local hum = character and character:FindFirstChild("Humanoid")
+                        local hrp = character and character:FindFirstChild("HumanoidRootPart")
+                        if hum and hrp then
+                            hum:EquipTool(v)
+                            hrp.CFrame = CFrame.new(-2824.359, 214.311, 1518.130)
+                            hum:EquipTool(v)
+                            workspace.world.npcs:WaitForChild("Jack Marrow").treasure.repairmap:InvokeServer()
+                        end
+                    end
+                end
+            end)
+        end
+    end
+end)
+
+local NukeSection = AutomationTab:Section({
+    Title = "Auto Nuke",
+    Icon = "bomb",
+    Box = true,
+    Opened = false
+})
+
+NukeSection:Toggle({
+    Title = "Auto Balance Nuke",
+    Desc = "",
+    Default = false,
+    Callback = function(isEnabled)
+        var.AutoBalanceNuke = isEnabled
+        local VIM = game:GetService("VirtualInputManager")
+        if getgc then
+            task.spawn(function()
+                for i, v in pairs(getgc(true)) do
+                    if type(v) == "function" then
+                        local name = debug.info(v, "n")
+                        if name == "LoopMinigame" then
+                            if debug.setupvalue then
+                                task.spawn(function()
+                                    while var.AutoBalanceNuke do
+                                        local success, result = pcall(function()
+                                            debug.setupvalue(v, 13, os.clock() - 10)
+                                        end)
+                                        if not success then
+                                            break
+                                        end
+                                        task.wait()
+                                    end
+                                end)
+                            end
+                        end
+                    end
+                end
+            end)
+            WindUI:Notify({
+                Title = "Auto Balance Nuke",
+                Content = isEnabled and "Enabled (Advanced Mode)" or "Disabled",
+                Duration = 3,
+                Icon = isEnabled and "zap" or "x"
+            })
+        else
+            if isEnabled then
+                task.spawn(function()
+                    while var.AutoBalanceNuke do
+                        task.wait(0.5)
+                        if player.PlayerGui:FindFirstChild("NukeMinigame") then
+                            if not var.AutoBalanceNukeConnection then
+                                var.AutoBalanceNukeConnection = player.PlayerGui.NukeMinigame.Center.Marker.Pointer.Frame:GetPropertyChangedSignal("AbsoluteRotation"):Connect(function()
+                                    local rot = player.PlayerGui.NukeMinigame.Center.Marker.Pointer.Frame.AbsoluteRotation
+                                    if rot < -35 then
+                                        VIM:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+                                        VIM:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+                                    elseif rot > 35 then
+                                        VIM:SendKeyEvent(true, Enum.KeyCode.Q, false, game)
+                                        VIM:SendKeyEvent(false, Enum.KeyCode.Q, false, game)
+                                    end
+                                end)
+                            end
+                        else
+                            if var.AutoBalanceNukeConnection then
+                                var.AutoBalanceNukeConnection:Disconnect()
+                                var.AutoBalanceNukeConnection = nil
+                            end
+                        end
+                    end
+                    if var.AutoBalanceNukeConnection then
+                        var.AutoBalanceNukeConnection:Disconnect()
+                        var.AutoBalanceNukeConnection = nil
+                    end
+                end)
+                WindUI:Notify({
+                    Title = "Auto Balance Nuke",
+                    Content = "Enabled (Fallback Mode)",
+                    Duration = 3,
+                    Icon = "zap"
+                })
+            else
+                if var.AutoBalanceNukeConnection then
+                    var.AutoBalanceNukeConnection:Disconnect()
+                    var.AutoBalanceNukeConnection = nil
+                end
+                WindUI:Notify({
+                    Title = "Auto Balance Nuke",
+                    Content = "Disabled",
+                    Duration = 3,
+                    Icon = "x"
+                })
+            end
+        end
+    end
+})
+
+-- Enable Stuff Tab
+local EnableTab = Window:Tab({Title = "Enable", Icon = "archive", Locked = false})
+
+local EnableSection = EnableTab:MultiSection({
+    Title = "Enable Things",
+    Sections = {{"Adds","blocks"}, {"Player","user-round-pen"}, {"Server","server"}},
+    Icon = "badge-plus",
+    Opened = false
+})
+
+EnableSection.Player:Button({
+    Title = "Die",
+    Justify = "Center",
+    IconAlign = "Right",
+    Desc = "",
+    Icon = "skull",
+    Callback = function()
+        ReplicatedStorage:WaitForChild("events"):WaitForChild("drown"):FireServer(0)
+        WindUI:Notify({
+            Title = "Character Killed",
+            Content = "Your character has been killed",
+            Duration = 3,
+            Icon = "skull"
+        })
+    end
+})
+
+EnableSection.Adds:Toggle({
+    Title = "Fish Radar",
+    Desc = "",
+    Flag = "fishradar",
+    Icon = "",
+    Type = "Toggle",
+    Default = false,
+    Callback = function(state)
+        local fishingFolder = workspace:WaitForChild("zones"):WaitForChild("fishing")
+        for _, container in pairs(fishingFolder:GetChildren()) do
+            for _, radarName in pairs({"radar1","radar2"}) do
+                local radar = container:FindFirstChild(radarName)
+                if radar then radar.Enabled = state end
+            end
+        end
+    end
+})
+
+EnableSection.Adds:Toggle({
+    Title = "Remove Fog",
+    Desc = "",
+    Flag = "removefog",
+    Icon = "",
+    Type = "Toggle",
+    Default = false,
+    Callback = function(state)
+        if state then
+            local function removeAtmos()
+                local atmos = Lighting:FindFirstChildOfClass("Atmosphere")
+                if atmos then atmos:Destroy() end
+            end
+            task.spawn(function()
+                while state do
+                    removeAtmos()
+                    task.wait(1)
+                end
+            end)
+        end
+    end
+})
+
+local disableCutscenes = false
+
+EnableSection.Adds:Toggle({
+    Title = "Disable Cutscenes",
+    Desc = "",
+    Flag = "disablecutscene",
+    Default = false,
+    Callback = function(state)
+        disableCutscenes = state
+        pcall(function()
+            local playerStats = workspace:WaitForChild("PlayerStats")
+            local userFolder = playerStats:WaitForChild(player.Name)
+            local tFolder = userFolder:WaitForChild("T")
+            local settingsFolder = tFolder:WaitForChild(player.Name)
+            local disableCutscenesValue = settingsFolder:WaitForChild("Settings"):WaitForChild("disable_cutscenes")
+            disableCutscenesValue.Value = state
+        end)
+        if state then
+            WindUI:Notify({
+                Title = "Cutscenes",
+                Content = "Disabled",
+                Duration = 3,
+                Icon = "check"
+            })
+        else
+            WindUI:Notify({
+                Title = "Cutscenes",
+                Content = "Enabled",
+                Duration = 3,
+                Icon = "x"
+            })
+        end
+    end
+})
+
+EnableSection.Adds:Toggle({
+    Title = "Infinite Oxygen",
+    Justify = "Center",
+    Flag = "infoxygen",
+    IconAlign = "Right",
+    Desc = "",
+    Default = false,
+    Callback = function(state)
+        if state then
+            pcall(function()
+                local playerResources = workspace:FindFirstChild(player.Name)
+                if playerResources then
+                    local resources = playerResources:FindFirstChild("Resources")
+                    if resources then
+                        local oxygen = resources:FindFirstChild("oxygen")
+                        if oxygen then
+                            oxygen:Destroy()
+                            WindUI:Notify({
+                                Title = "Infinite Oxygen",
+                                Content = "Oxygen removed",
+                                Duration = 4,
+                                Icon = "droplet"
+                            })
+                        end
+                    end
+                end
+            end)
+        else
+            WindUI:Notify({
+                Title = "Infinite Oxygen",
+                Content = "Disabled - Rejoin to restore oxygen",
+                Duration = 3,
+                Icon = "x"
+            })
+        end
+    end
+})
+
+getgenv().protectName = ".gg/4ZVm6WqSZ7"
+
+EnableSection.Player:Toggle({
+    Title = "Hide Username",
+    Desc = "",
+    Flag = "hideusernametoggle",
+    Default = false,
+    Callback = function(isEnabled)
+        if isEnabled then
+            getgenv().ToggledTest = true
+            local function HSVRainbow(speed, shift)
+                local h = (tick() * speed + (shift or 0)) % 1
+                return Color3.fromHSV(h, 1, 1)
+            end
+            local function createRainbowGradient(parent)
+                if not parent then return nil end
+                local gradient = Instance.new("UIGradient", parent)
+                gradient.Color = ColorSequence.new{
+                    ColorSequenceKeypoint.new(0, Color3.fromRGB(242, 138, 54)),
+                    ColorSequenceKeypoint.new(0.25, Color3.fromRGB(242, 54, 107)),
+                    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(134, 54, 242)),
+                    ColorSequenceKeypoint.new(0.75, Color3.fromRGB(54, 187, 242)),
+                    ColorSequenceKeypoint.new(1, Color3.fromRGB(54, 242, 173))
+                }
+                return gradient
+            end
+            local function lockText(target, value)
+                if target and (target:IsA("TextLabel") or target:IsA("TextButton")) then
+                    target.Text = value
+                    local conn = target:GetPropertyChangedSignal("Text"):Connect(function()
+                        if target.Text ~= value then target.Text = value end
+                    end)
+                    table.insert(getgenv().lockConnections or {}, conn)
+                end
+            end
+            local function setupCharacter(char)
+                local hrp = char:WaitForChild("HumanoidRootPart")
+                local userGui = hrp:WaitForChild("user", 5)
+                if not userGui then return end
+                local rainbowParts = {}
+                for _, v in ipairs(char:GetDescendants()) do
+                    if v:IsA("CharacterMesh") or v:IsA("Accessory") or v:IsA("SpecialMesh") or (v:IsA("Decal") and v.Name == "face") then
+                        v:Destroy()
+                    elseif v:IsA("BasePart") then
+                        v.Material = Enum.Material.Neon
+                        table.insert(rainbowParts, v)
+                    end
+                end
+                if char:FindFirstChild("Shirt") then char.Shirt:Destroy() end
+                if char:FindFirstChild("Pants") then char.Pants:Destroy() end
+                local hud = player:FindFirstChild("PlayerGui") and player.PlayerGui:WaitForChild("hud", 5)
+                local safezone = hud and hud:WaitForChild("safezone", 5)
+                if not safezone then return end
+                getgenv().lockConnections = getgenv().lockConnections or {}
+                local gradients = {
+                    createRainbowGradient(userGui:FindFirstChild("user")),
+                    createRainbowGradient(userGui:FindFirstChild("level")),
+                    createRainbowGradient(userGui:FindFirstChild("streak")),
+                    createRainbowGradient(userGui:FindFirstChild("title")),
+                    createRainbowGradient(safezone:FindFirstChild("coins")),
+                    createRainbowGradient(safezone:FindFirstChild("lvl"))
+                }
+                lockText(userGui:FindFirstChild("user"), getgenv().protectName)
+                lockText(userGui:FindFirstChild("level"), "Level: Inf")
+                lockText(userGui:FindFirstChild("streak"), "Inf")
+                lockText(userGui:FindFirstChild("title"), "Xarxynth Hub")
+                lockText(safezone:FindFirstChild("coins"), "Xarxynth Hub C$")
+                lockText(safezone:FindFirstChild("lvl"), "Level: Inf")
+                getgenv().MoneyLog = safezone:WaitForChild("StatChangeList").ChildAdded:Connect(function(v)
+                    if v:IsA("TextLabel") then v.Text = "Xarxynth Hub" end
+                end)
+                task.spawn(function()
+                    local multi, val = 0.7, 0
+                    while getgenv().ToggledTest and task.wait() do
+                        val = val + RunService.RenderStepped:Wait() * multi
+                        if val > 0.5 then multi = -multi elseif val < -0.5 then multi = -multi end
+                        for _, grad in pairs(gradients) do
+                            if grad then grad.Offset = Vector2.new(val, 0) end
+                        end
+                        local rainbowColor = HSVRainbow(0.4)
+                        for _, part in pairs(rainbowParts) do
+                            if part and part:IsA("BasePart") then
+                                part.Color = rainbowColor
+                            end
+                        end
+                    end
+                end)
+            end
+            getgenv().Cow = player.CharacterAdded:Connect(setupCharacter)
+            if player.Character then setupCharacter(player.Character) end
+            getgenv()._protectIdentity = true
+            local function handleTextLabel(Label)
+                if Label:IsA("TextLabel") and Label.Text:find(player.Name) then
+                    Label.Text = Label.Text:gsub(player.Name, getgenv().protectName)
+                    createRainbowGradient(Label)
+                    Label:GetPropertyChangedSignal("Text"):Connect(function()
+                        if not getgenv()._protectIdentity then return end
+                        Label.Text = Label.Text:gsub(player.Name, getgenv().protectName)
+                    end)
+                end
+            end
+            for _, obj in ipairs(game:GetDescendants()) do
+                handleTextLabel(obj)
+            end
+            getgenv()._descAddedConn = game.DescendantAdded:Connect(function(obj)
+                if not getgenv()._protectIdentity then return end
+                task.defer(handleTextLabel, obj)
+            end)
+            WindUI:Notify({
+                Title = "Protect Identity",
+                Content = "Enabled! Identity hidden with rainbow effect",
+                Duration = 5,
+                Icon = "shield-check"
+            })
+        else
+            getgenv().ToggledTest = false
+            getgenv()._protectIdentity = false
+            if getgenv().Cow then getgenv().Cow:Disconnect() end
+            if getgenv().MoneyLog then getgenv().MoneyLog:Disconnect() end
+            for _, conn in pairs(getgenv().lockConnections or {}) do conn:Disconnect() end
+            getgenv().lockConnections = nil
+            if getgenv()._descAddedConn then
+                getgenv()._descAddedConn:Disconnect()
+                getgenv()._descAddedConn = nil
+            end
+            WindUI:Notify({
+                Title = "Protect Identity",
+                Content = "Disabled. Use 'Die' to fully reset.",
+                Duration = 5,
+                Icon = "shield-off"
+            })
+        end
+    end
+})
+
+local customWalkSpeed = 0
+local speedConnection = nil
+
+EnableSection.Player:Slider({
+    Title = "Walk Speed",
+    Desc = "",
+    Flag = "walkspeed",
+    Step = 1,
+    Value = {Min = 0, Max = 200, Default = 0},
+    Callback = function(value)
+        customWalkSpeed = value
+    end
+})
+
+local function startCFrameSpeed()
+    if speedConnection then speedConnection:Disconnect() end
+    speedConnection = RunService.Heartbeat:Connect(function()
+        local hum = character and character:FindFirstChild("Humanoid")
+        local root = character and character:FindFirstChild("HumanoidRootPart")
+        if not hum or not root or hum.MoveDirection.Magnitude == 0 then return end
+        if freezePosition or flying then return end
+        local moveDirection = hum.MoveDirection
+        if moveDirection.Magnitude > 0 then
+            local velocity = moveDirection * customWalkSpeed
+            local deltaTime = RunService.Heartbeat:Wait()
+            local newPosition = root.Position + velocity * deltaTime
+            local currentRotation = root.CFrame - root.CFrame.Position
+            root.CFrame = CFrame.new(newPosition) * currentRotation
+        end
+    end)
+end
+
+startCFrameSpeed()
+
+player.CharacterAdded:Connect(function(newChar)
+    character = newChar
+    task.wait(1)
+    startCFrameSpeed()
+end)
+
+local antiAfkActive = false
+local antiAfkConnection = nil
+
+EnableSection.Player:Toggle({
+    Title = "Anti AFK",
+    Desc = "",
+    Flag = "antiafk",
+    Default = false,
+    Callback = function(state)
+        antiAfkActive = state
+        if state then
+            if getconnections then
+                local disconnected = false
+                pcall(function()
+                    for _, connection in pairs(getconnections(player.Idled)) do
+                        if connection["Disable"] then
+                            connection["Disable"](connection)
+                            disconnected = true
+                        elseif connection["Disconnect"] then
+                            connection["Disconnect"](connection)
+                            disconnected = true
+                        end
+                    end
+                end)
+                if not disconnected then
+                    local VirtualUser = game:GetService("VirtualUser")
+                    antiAfkConnection = player.Idled:Connect(function()
+                        VirtualUser:CaptureController()
+                        VirtualUser:ClickButton2(Vector2.new())
+                    end)
+                end
+            else
+                local VirtualUser = game:GetService("VirtualUser")
+                antiAfkConnection = player.Idled:Connect(function()
+                    VirtualUser:CaptureController()
+                    VirtualUser:ClickButton2(Vector2.new())
+                end)
+            end
+            task.spawn(function()
+                local afkGui = Instance.new("ScreenGui")
+                afkGui.Name = "AFK_Notice"
+                afkGui.ResetOnSpawn = false
+                afkGui.Parent = player:WaitForChild("PlayerGui")
+                local frame = Instance.new("Frame")
+                frame.Size = UDim2.new(0, 560, 0, 60)
+                frame.Position = UDim2.new(0.5, 0, 0, -150)
+                frame.AnchorPoint = Vector2.new(0.5, 0)
+                frame.BackgroundColor3 = Color3.fromHex("#044f4b")
+                frame.BorderSizePixel = 0
+                frame.ZIndex = 10
+                frame.Parent = afkGui
+                local corner = Instance.new("UICorner")
+                corner.CornerRadius = UDim.new(0, 12)
+                corner.Parent = frame
+                local stroke = Instance.new("UIStroke")
+                stroke.Color = Color3.fromHex("#00fff2")
+                stroke.Thickness = 2
+                stroke.Parent = frame
+                local gradient = Instance.new("UIGradient")
+                gradient.Color = ColorSequence.new{
+                    ColorSequenceKeypoint.new(0, Color3.fromHex("#00fff2")),
+                    ColorSequenceKeypoint.new(1, Color3.fromHex("#00fff2"))
+                }
+                gradient.Rotation = 90
+                gradient.Parent = frame
+                local label = Instance.new("TextLabel")
+                label.Size = UDim2.new(1, -20, 1, -10)
+                label.Position = UDim2.new(0, 10, 0, 5)
+                label.BackgroundTransparency = 1
+                label.Text = "Anti-AFK Activated. You can now AFK Safely!"
+                label.Font = Enum.Font.GothamSemibold
+                label.TextSize = 18
+                label.TextColor3 = Color3.fromHex("#FFFFFF")
+                label.TextXAlignment = Enum.TextXAlignment.Left
+                label.ZIndex = 11
+                label.Parent = frame
+                TweenService:Create(frame, TweenInfo.new(1.5, Enum.EasingStyle.Quint), {
+                    Position = UDim2.new(0.5, 0, 0, 20)
+                }):Play()
+                task.wait(5)
+                TweenService:Create(frame, TweenInfo.new(1.5, Enum.EasingStyle.Quint), {
+                    Position = UDim2.new(0.5, 0, 0, -120)
+                }):Play()
+                task.wait(1.5)
+                afkGui:Destroy()
+            end)
+        else
+            antiAfkActive = false
+            if getconnections then
+                pcall(function()
+                    for _, connection in pairs(getconnections(player.Idled)) do
+                        if connection["Enable"] then
+                            connection["Enable"](connection)
+                        end
+                    end
+                end)
+            end
+            if antiAfkConnection then
+                antiAfkConnection:Disconnect()
+                antiAfkConnection = nil
+            end
+        end
+    end
+})
+
+local noclipEnabled = false
+local noclipConnection = nil
+
+local function setCharacterCollisions(char, collidable)
+    if not char then return end
+    for _, part in ipairs(char:GetDescendants()) do
+        if part:IsA("BasePart") then
+            pcall(function()
+                part.CanCollide = collidable
+            end)
+        end
+    end
+end
+
+local function enableNoclip()
+    noclipEnabled = true
+    local function noclipStep()
+        local char = player.Character
+        if not char then return end
+        for _, part in ipairs(char:GetDescendants()) do
+            if part:IsA("BasePart") then
+                pcall(function() part.CanCollide = false end)
+            end
+        end
+    end
+    noclipConnection = RunService.Stepped:Connect(noclipStep)
+    if player.Character then
+        setCharacterCollisions(player.Character, false)
+    end
+end
+
+local function disableNoclip()
+    noclipEnabled = false
+    if noclipConnection then
+        noclipConnection:Disconnect()
+        noclipConnection = nil
+    end
+    if player.Character then
+        setCharacterCollisions(player.Character, true)
+    end
+end
+
+EnableSection.Player:Toggle({
+    Title = "Noclip",
+    Desc = "",
+    Flag = "noclip",
+    Icon = "",
+    Type = "Toggle",
+    Default = false,
+    Callback = function(state)
+        if state then
+            enableNoclip()
+        else
+            disableNoclip()
+        end
+    end
+})
+
+EnableSection.Player:Space()
+
+local EnableSectionGroup = EnableSection.Player:Group()
+
+EnableSectionGroup:Toggle({
+    Title = "Fly",
+    Desc = "",
+    Flag = "flytoggle",
+    Icon = "",
+    Type = "Toggle",
+    Default = false,
+    Callback = function(state)
+        if state then
+            startFlying()
+        else
+            stopFlying()
+        end
+    end
+})
+
+EnableSectionGroup:Slider({
+    Title = "",
+    Desc = "",
+    Flag = "flyslider",
+    Step = 1,
+    Value = {Min = 10, Max = 200, Default = 50},
+    Callback = function(value)
+        flySpeed = value
+    end
+})
+
+local function HopToServer()
+    local TeleportService = game:GetService("TeleportService")
+    local PlaceId = game.PlaceId
+    local serversUrl = "https://games.roblox.com/v1/games/" .. PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"
+    local function getServers()
+        local response = HttpService:JSONDecode(game:HttpGet(serversUrl))
+        return response.data
+    end
+    local servers = getServers()
+    for _, server in ipairs(servers) do
+        if server.playing < server.maxPlayers and server.id ~= game.JobId then
+            TeleportService:TeleportToPlaceInstance(PlaceId, server.id)
+            return
+        end
+    end
+    WindUI:Notify({Title = "No low pop server", Content = "Trying again...", Duration = 3, Icon = "refresh-cw"})
+    HopToServer()
+end
+
+EnableSection.Server:Button({
+    Title = "Low-Server Hop",
+    Justify = "Center",
+    IconAlign = "Right",
+    Desc = "",
+    Icon = "users",
+    Callback = function()
+        HopToServer()
+    end
+})
+
+EnableSection.Server:Space()
+
+EnableSection.Server:Toggle({
+    Title = "Auto-Rejoin",
+    Desc = "",
+    Flag = "autorejoin",
+    Default = true,
+    Callback = function(enabled)
+        if enabled then
+            _G.AutoRejoin = true
+            getgenv().RejoinConnection = game:GetService("CoreGui").RobloxPromptGui.promptOverlay.ChildAdded:Connect(function(child)
+                if child.Name == "ErrorPrompt" and child:FindFirstChild("MessageArea") and child.MessageArea:FindFirstChild("ErrorFrame") then
+                    game:GetService("TeleportService"):Teleport(game.PlaceId)
+                end
+            end)
+            WindUI:Notify({
+                Title = "Auto-Rejoin",
+                Content = "Enabled - Will auto-rejoin on disconnect",
+                Duration = 3,
+                Icon = "check"
+            })
+        else
+            _G.AutoRejoin = false
+            if getgenv().RejoinConnection then
+                getgenv().RejoinConnection:Disconnect()
+                getgenv().RejoinConnection = nil
+            end
+            WindUI:Notify({
+                Title = "Auto-Rejoin",
+                Content = "Disabled",
+                Duration = 3,
+                Icon = "x"
+            })
+        end
+    end
+})
+
+EnableSection.Server:Button({
+    Title = "Rejoin Server",
+    Justify = "Center",
+    IconAlign = "Right",
+    Desc = "",
+    Icon = "refresh-cw",
+    Callback = function()
+        game:GetService("TeleportService"):Teleport(game.PlaceId, game:GetService("Players").LocalPlayer)
+    end
+})
+
+-- Sell Tab
+local SellTab = Window:Tab({Title = "Sell", Icon = "circle-dollar-sign", Locked = false})
+local SellSection = SellTab:Section({Title = "Auto Sell", Icon = "fish", Box = true, Opened = false})
+
+local autoSellAll = false
+local autoSellHolding = false
+local SellAllRemote = game:GetService("ReplicatedStorage").events.SellAll
+local SellRemote = game:GetService("ReplicatedStorage").events.Sell
+
+SellSection:Toggle({
+    Title = "Auto Sell All",
+    Desc = "",
+    Flag = "selalltoggle",
+    Icon = "",
+    Type = "Toggle",
+    Default = false,
+    Callback = function(state)
+        autoSellAll = state
+        if state then
+            task.spawn(function()
+                while autoSellAll do
+                    pcall(function()
+                        SellAllRemote:InvokeServer()
+                    end)
+                    task.wait(3)
+                end
+            end)
+            WindUI:Notify({
+                Title = "Auto Sell All",
+                Content = "Enabled - Selling everything every 3s",
+                Duration = 4,
+                Icon = "check"
+            })
+        else
+            WindUI:Notify({
+                Title = "Auto Sell All",
+                Content = "Disabled",
+                Duration = 3,
+                Icon = "x"
+            })
+        end
+    end
+})
+
+SellSection:Toggle({
+    Title = "Auto Sell Holding",
+    Desc = "",
+    Flag = "autosellholdingtoggle",
+    Icon = "",
+    Type = "Toggle",
+    Default = false,
+    Callback = function(state)
+        autoSellHolding = state
+        if state then
+            task.spawn(function()
+                while autoSellHolding do
+                    pcall(function()
+                        SellRemote:InvokeServer()
+                    end)
+                    task.wait(0.1)
+                end
+            end)
+            WindUI:Notify({
+                Title = "Auto Sell Holding",
+                Content = "Enabled - Selling held fish instantly",
+                Duration = 4,
+                Icon = "zap"
+            })
+        else
+            WindUI:Notify({
+                Title = "Auto Sell Holding",
+                Content = "Disabled",
+                Duration = 3,
+                Icon = "x"
+            })
+        end
+    end
+})
+
+SellSection:Space()
+
+SellSection:Button({
+    Title = "Sell All",
+    Justify = "Center",
+    Flag = "sellallbutton",
+    IconAlign = "Right",
+    Desc = "",
+    Icon = "hand",
+    Callback = function()
+        pcall(function()
+            SellAllRemote:InvokeServer()
+            WindUI:Notify({Title = "Sold All!", Content = "Inventory cleared", Duration = 3, Icon = "check"})
+        end)
+    end
+})
+
+SellSection:Button({
+    Title = "Sell Holding",
+    Justify = "Center",
+    Flag = "sellholdingbutton",
+    IconAlign = "Right",
+    Desc = "",
+    Icon = "hand",
+    Callback = function()
+        pcall(function()
+            SellRemote:InvokeServer()
+            WindUI:Notify({Title = "Sold Holding!", Content = "Current fish sold", Duration = 3, Icon = "zap"})
+        end)
+    end
+})
+
+local AppraiseSection = SellTab:Section({Title = "Appraise", Icon = "sun-moon", Box = true, Opened = false})
+local autoAppraiseEnabled = false
+
+AppraiseSection:Toggle({
+    Title = "Auto Appraise",
+    Desc = "",
+    Flag = "autoappraisetoggle",
+    Icon = "",
+    Type = "Toggle",
+    Default = false,
+    Callback = function(state)
+        autoAppraiseEnabled = state
+        if state then
+            task.spawn(function()
+                local remote = game:GetService("ReplicatedStorage").packages.Net["RF/DialogInteract"]
+                while autoAppraiseEnabled do
+                    pcall(function()
+                        remote:InvokeServer(1, 1)
+                    end)
+                    task.wait(0.15)
+                    pcall(function()
+                        remote:InvokeServer(6, 1)
+                    end)
+                    task.wait(0.85)
+                end
+            end)
+        end
+    end
+})
+
+AppraiseSection:Button({
+    Title = "Appraise",
+    Justify = "Center",
+    Flag = "appraisebutton",
+    IconAlign = "Right",
+    Desc = "",
+    Icon = "hand",
+    Callback = function()
+        local remote = game:GetService("ReplicatedStorage").packages.Net["RF/DialogInteract"]
+        pcall(function() remote:InvokeServer(1, 1) end)
+        task.wait(0.2)
+        pcall(function() remote:InvokeServer(6, 1) end)
+    end
+})
+
+-- Quest Tab
+local QuestTab = Window:Tab({Title = "Quests", Icon = "file-question-mark", Locked = false})
+
+local QuestMulti = QuestTab:MultiSection({
+    Title = "Quest Tp",
+    Sections = {{"Jungle","trees"}, {"Soon","plus"}},
+    Opened = false,
+    Icon = "circle-question-mark"
+})
+
+local mazeLocations = {
+    {Name = "Npc Jungle Quest", CFrame = CFrame.new(-5260.47754, -1759.58533, -10006.8662, 0.577006817, -0.00799844693, -0.816700161, 1.09702668e-07, 0.999952018, -0.00979306828, 0.816739321, 0.00565057714, 0.57697916)},
+    {Name = "Maze Spot 1", CFrame = CFrame.new(-5448.09424, -1757.58411, -9624.69922, 0.0114427926, 0.00880829804, 0.999895751, -3.01720725e-13, 0.999961197, -0.00880887453, -0.999934554, 0.000100798126, 0.0114423484)},
+    {Name = "Maze Spot 2", CFrame = CFrame.new(-5751.97559, -1765.73352, -10122.0684, 0.0296036415, 0.000364790962, 0.999561667, -1.33307632e-09, 0.99999994, -0.000364950887, -0.999561727, 1.08025424e-05, 0.0296036396)},
+    {Name = "Maze Spot 3", CFrame = CFrame.new(-5177.49512, -1759.08923, -10382.9043, 0.999450028, 0.000490962877, 0.0331564248, 4.41436887e-10, 0.999890387, -0.0148058627, -0.0331600606, 0.0147977201, 0.999340475)},
+    {Name = "Maze Spot 4", CFrame = CFrame.new(-4469.78906, -1646.08252, -10169.9268, -0.00525770057, -0.0064406856, -0.999965429, -3.78243969e-09, 0.999979258, -0.00644077454, 0.999986172, -3.38598802e-05, -0.00525759161)},
+    {Name = "Maze Spot 5", CFrame = CFrame.new(-4850.08105, -1759.08704, -9308.17871, -0.999876201, -0.000192352745, -0.0157320704, 4.92515451e-09, 0.999925256, -0.0122261913, 0.0157332458, -0.012224678, -0.999801457)},
+    {Name = "Key Door", CFrame = CFrame.new(-5070.90723, -1759.58948, -10162.6172, -0.0122868083, -0.0146022979, -0.999817908, -1.94733918e-09, 0.999893367, -0.0146033997, 0.999924541, -0.000179427239, -0.012285498)},
+    {Name = "Mossjaw Rest", CFrame = CFrame.new(-4912.04443, -1790.98254, -10160.0244, -0.0246278793, -0.0066876011, -0.99967432, 4.77987108e-08, 0.999977648, -0.00668963138, 0.999696672, -0.000164799203, -0.0246273279)},
+}
+
+for _, spot in ipairs(mazeLocations) do
+    QuestMulti.Jungle:Button({
+        Title = spot.Name,
+        Justify = "Center",
+        IconAlign = "Right",
+        Desc = "",
+        Icon = "map-pin",
+        Callback = function()
+            local char = player.Character or player.CharacterAdded:Wait()
+            local root = char:WaitForChild("HumanoidRootPart")
+            root.CFrame = spot.CFrame
+        end
+    })
+end
+
+-- Buy Tab
+local BuyTab = Window:Tab({Title = "Buy", Icon = "shopping-cart", Locked = false})
+
+local BuyMulti = BuyTab:MultiSection({
+    Title = "Buy Items",
+    Sections = {{"Rods","shrimp"}, {"Crates","package-plus"}},
+    Icon = "circle-dollar-sign",
+    Opened = false
+})
+
+local selectedRod = rodNames[1]
+
+BuyMulti.Rods:Dropdown({
+    Title = "Buy Rods",
+    Values = rodNames,
+    Value = rodNames[1],
+    SearchBarEnabled = true,
+    Multi = false,
+    AllowNone = false,
+    Callback = function(option)
+        selectedRod = option
+    end
+})
+
+BuyMulti.Rods:Button({
+    Title = "Buy Selected Rod",
+    Justify = "Center",
+    IconAlign = "Right",
+    Desc = "",
+    Icon = "credit-card",
+    Callback = function()
+        if not selectedRod then
+            return
+        end
+        local args = {
+            selectedRod,
+            "Rod",
+            [4] = 1
+        }
+        local purchaseRemote = game:GetService("ReplicatedStorage"):WaitForChild("events"):WaitForChild("purchase")
+        if purchaseRemote then
+            pcall(function()
+                purchaseRemote:FireServer(unpack(args))
+            end)
+        end
+    end
+})
+
+local crateList = {
+    "Common Crate",
+    "Carbon Crate",
+    "Bait Crate",
+    "Quality Bait Crate",
+    "Tropical Bait Crate",
+    "Coral Geode",
+    "Volcanic Geode",
+    "Festive Bait Crate"
+}
+
+local selectedCrate = crateList[1]
+local crateAmount = 1
+
+BuyMulti.Crates:Dropdown({
+    Title = "Select Crate",
+    Desc = "",
+    Flag = "selectcrate",
+    Values = crateList,
+    Value = crateList[1],
+    SearchBarEnabled = true,
+    Multi = false,
+    AllowNone = false,
+    Callback = function(option)
+        selectedCrate = option
+    end
+})
+
+BuyMulti.Crates:Space()
+
+BuyMulti.Crates:Slider({
+    Title = "Amount",
+    Desc = "",
+    Flag = "crateamount",
+    Step = 1,
+    Value = {Min = 1, Max = 100, Default = 1},
+    Callback = function(value)
+        crateAmount = value
+    end
+})
+
+BuyMulti.Crates:Button({
+    Title = "Buy Selected Crate",
+    Justify = "Center",
+    IconAlign = "Right",
+    Desc = "",
+    Icon = "shopping-cart",
+    Callback = function()
+        if not selectedCrate then
+            WindUI:Notify({Title = "Error", Content = "No crate selected!", Duration = 3, Icon = "x"})
+            return
+        end
+        local purchaseRemote = game:GetService("ReplicatedStorage").events.purchase
+        if not purchaseRemote then
+            WindUI:Notify({Title = "Error", Content = "Purchase remote missing!", Duration = 4, Icon = "alert-triangle"})
+            return
+        end
+        pcall(function()
+            purchaseRemote:FireServer(selectedCrate, "fish", nil, crateAmount)
+        end)
+        task.wait(0.05)
+        pcall(function()
+            purchaseRemote:FireServer(selectedCrate, "Item", nil, crateAmount)
+        end)
+        WindUI:Notify({
+            Title = "Purchased!",
+            Content = selectedCrate .. " x" .. crateAmount,
+            Duration = 5,
+            Icon = "check"
+        })
+    end
+})
+
+BuyMulti.Crates:Divider()
+
+local crateInterval = 1
+BuyMulti.Crates:Input({
+    Title = "Seconds",
+    Desc = "",
+    Flag = "crateinterval",
+    Value = "1",
+    InputIcon = "clock",
+    Type = "Input",
+    Placeholder = "Enter seconds...",
+    Callback = function(textVal)
+        local num = tonumber(textVal)
+        if num and num > 0 then
+            crateInterval = num
+        end
+    end
+})
+
+local autoCrateBuy = false
+BuyMulti.Crates:Toggle({
+    Title = "Auto Buy Crate",
+    Desc = "",
+    Flag = "buycratetoggle",
+    Default = false,
+    Callback = function(state)
+        autoCrateBuy = state
+        if state then
+            task.spawn(function()
+                while autoCrateBuy do
+                    pcall(function()
+                        local remote = game:GetService("ReplicatedStorage").events.purchase
+                        remote:FireServer(selectedCrate, "fish", nil, crateAmount)
+                        task.wait(0.05)
+                        remote:FireServer(selectedCrate, "Item", nil, crateAmount)
+                    end)
+                    task.wait(crateInterval)
+                end
+            end)
+        end
+    end
+})
+
+local autoBuyCrab = false
+local BuyCrabSection = BuyTab:Section({Title = "Crab Cages", Icon = "columns-4", Box = true, Opened = false})
+
+BuyCrabSection:Toggle({
+    Title = "Auto Buy Crab Cage",
+    Desc = "",
+    Flag = "autobuycrabcages",
+    Icon = "",
+    Type = "Toggle",
+    Default = false,
+    Callback = function(state)
+        autoBuyCrab = state
+        if state then
+            task.spawn(function()
+                while autoBuyCrab do
+                    local args = {
+                        "Crab Cage",
+                        "Item",
+                        [4] = 1
+                    }
+                    local purchaseRemote = game:GetService("ReplicatedStorage"):WaitForChild("events"):WaitForChild("purchase")
+                    if purchaseRemote then
+                        pcall(function()
+                            purchaseRemote:FireServer(unpack(args))
+                        end)
+                    end
+                    task.wait()
+                end
+            end)
+        end
+    end
+})
+
+BuyCrabSection:Space()
+
+local autoDeployCrab = false
+BuyCrabSection:Toggle({
+    Title = "Deploy Crab Cages",
+    Desc = "",
+    Flag = "autodeploycrabcages",
+    Icon = "",
+    Type = "Toggle",
+    Default = false,
+    Callback = function(state)
+        autoDeployCrab = state
+        if state then
+            task.spawn(function()
+                while autoDeployCrab do
+                    local char = player.Character
+                    local backpack = player:WaitForChild("Backpack")
+                    local crabCage = backpack:FindFirstChild("Crab Cage")
+                    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+                    if crabCage and hrp then
+                        local deployRemote = crabCage:FindFirstChild("Deploy")
+                        if deployRemote then
+                            local args = {hrp.CFrame}
+                            pcall(function()
+                                deployRemote:FireServer(unpack(args))
+                            end)
+                        end
+                    end
+                    task.wait(0.05)
+                end
+            end)
+        end
+    end
+})
+
+BuyCrabSection:Space()
+
+local autoCrab = false
+BuyCrabSection:Toggle({
+    Title = "Auto Crab Cages",
+    Desc = "",
+    Flag = "autocollectcrabcages",
+    Icon = "",
+    Type = "Toggle",
+    Default = false,
+    Callback = function(state)
+        autoCrab = state
+        if state then
+            task.spawn(function()
+                local crabCagesFolder = workspace:WaitForChild("active"):WaitForChild("crabcages")
+                for _, cage in ipairs(crabCagesFolder:GetChildren()) do
+                    local prompt = cage:FindFirstChild("Prompt")
+                    if prompt and prompt:IsA("ProximityPrompt") then
+                        prompt.MaxActivationDistance = 200
+                        prompt.HoldDuration = 0.1
+                    end
+                end
+                while autoCrab do
+                    for _, cage in ipairs(crabCagesFolder:GetChildren()) do
+                        local prompt = cage:FindFirstChild("Prompt")
+                        if prompt and prompt:IsA("ProximityPrompt") then
+                            pcall(function()
+                                fireproximityprompt(prompt)
+                            end)
+                        end
+                    end
+                    task.wait(0.2)
+                end
+            end)
+        end
+    end
+})
+
+local BoatSection = BuyTab:Section({Title = "Boats", Icon = "sailboat", Box = true, Opened = false})
+
+BoatSection:Button({
+    Title = "Open Boat Shop",
+    Justify = "Center",
+    IconAlign = "Right",
+    Desc = "",
+    Icon = "anchor",
+    Callback = function()
+        local npcPath = workspace:WaitForChild("world"):WaitForChild("npcs"):WaitForChild("Moosewood Shipwright")
+        if not npcPath then
+            return
+        end
+        local args = {
+            {
+                voice = 8,
+                idle = npcPath:WaitForChild("description"):WaitForChild("idle"),
+                npc = npcPath
+            }
+        }
+        local remote = npcPath:WaitForChild("shipwright"):WaitForChild("giveUI")
+        if remote then
+            pcall(function()
+                remote:InvokeServer(unpack(args))
+            end)
+        end
+    end
+})
+
+-- Settings Tab
+local SettingsTab2 = Window:Tab({
+    Title = "Settings",
+    Icon = "settings",
+    Locked = false,
+})
+
+local UISettingsSection = SettingsTab2:Section({ 
+    Title = "UI Settings",
+    Box = true,
+    Opened = true,
+})
+
+UISettingsSection:Keybind({
+    Title = "UI Toggle Key",
+    Desc = "Key to open/close the UI",
+    Value = "V",
+    Callback = function(v)
+        Window:SetToggleKey(Enum.KeyCode[v])
+    end
+})
+
+local SettingsConfig = Window.ConfigManager:Config("Xarxynth Load", true)
+
+-- Config Tab
+local ConfigTab = Window:Tab({ Title = "Configs", Icon = "bird" })
+local ManagerSection = ConfigTab:Section({ Title = "Configuration", Opened = false, Icon = "cassette-tape"})
+
+local ConfigNameInput = "NewConfig"
+ManagerSection:Input({
+    Title = "Config File Name",
+    Placeholder = "Enter name...",
+    Callback = function(textVal)
+        ConfigNameInput = textVal
+    end
+})
+
+ManagerSection:Button({
+    Title = "Save Current Settings",
+    Icon = "save",
+    Callback = function()
+        local config = Window.ConfigManager:Config(ConfigNameInput)
+        config:Save()
+        SettingsConfig.Data.LastConfigName = ConfigNameInput
+        SettingsConfig:Save()
+        WindUI:Notify({
+            Title = "Success",
+            Content = "Saved to " .. ConfigNameInput .. ".json",
+            Duration = 3
+        })
+    end
+})
+
+ManagerSection:Space()
+
+ManagerSection:Button({
+    Title = "Load Selected Config",
+    Icon = "folder-open",
+    Callback = function()
+        local config = Window.ConfigManager:Config(ConfigNameInput)
+        config:Load()
+        WindUI:Notify({
+            Title = "Success",
+            Content = "Loaded " .. ConfigNameInput .. ".json",
+            Duration = 3
+        })
+    end
+})
+
+local ConfigDropdown = ManagerSection:Dropdown({
+    Title = "Existing Configs",
+    Values = Window.ConfigManager:AllConfigs(),
+    Flag = "Ignore_Me",
+    Callback = function(selected)
+        ConfigNameInput = selected
+    end
+})
+
+ManagerSection:Button({
+    Title = "Refresh File List",
+    Icon = "refresh-cw",
+    Callback = function()
+        ConfigDropdown:Refresh(Window.ConfigManager:AllConfigs())
+    end
+})
+
+ManagerSection:Divider()
+
+ManagerSection:Button({
+    Title = "Delete Selected Config",
+    Icon = "trash-2",
+    Color = "Red",
+    Callback = function()
+        Window.ConfigManager:DeleteConfig(ConfigNameInput)
+        ConfigDropdown:Refresh(Window.ConfigManager:AllConfigs())
+    end
+})
+
+ManagerSection:Toggle({
+    Title = "Auto-Load Enabled",
+    Value = SettingsConfig.AutoLoad,
+    Callback = function(state)
+        SettingsConfig:SetAutoLoad(state)
+        SettingsConfig:Save()
+    end
+})
+
+task.spawn(function()
+    task.wait(0.5)
+    local settingsData = SettingsConfig:Load()
+    if settingsData and settingsData.AutoLoad == true then
+        local lastConfigName = settingsData.LastConfigName or "Xarxynth Load"
+        local config = Window.ConfigManager:Config(lastConfigName)
+        local loadedData = config:Load()
+        if loadedData and loadedData.SavedPlaces then
+            getgenv()[SAVED_PLACES_KEY] = loadedData.SavedPlaces
+            savedCoordinates = {}
+            loadPlacesFromConfig()
+            refreshSavedPlacesDropdown()
+        end
+        if loadedData and loadedData.savedplacesdropdown then
+            selectedSavedPlace = loadedData.savedplacesdropdown
+            savedPlacesDropdown:Set(selectedSavedPlace)
+        end
+        if loadedData and loadedData.autoteleporttosaved == true then
+            task.wait(0.2)
+            autoTeleportEnabled = true
+            task.spawn(function()
+                while autoTeleportEnabled do
+                    local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                    if hrp and selectedSavedPlace and savedCoordinates[selectedSavedPlace] then
+                        hrp.CFrame = savedCoordinates[selectedSavedPlace]
+                    end
+                    task.wait(0.1)
+                end
+            end)
+        end
+        WindUI:Notify({
+            Title = "Auto-Load",
+            Content = "Loaded: " .. lastConfigName,
+            Duration = 4,
+            Icon = "folder-open"
+        })
+    end
+end)
+
+local originalSave = SettingsConfig.Save
+function SettingsConfig:Save()
+    self.Data.SavedPlaces = getgenv()[SAVED_PLACES_KEY] or {}
+    originalSave(self)
+end
+
+local originalLoad = SettingsConfig.Load
+function SettingsConfig:Load()
+    local data = originalLoad(self)
+    if data and data.SavedPlaces then
+        getgenv()[SAVED_PLACES_KEY] = data.SavedPlaces
+        savedCoordinates = {}
+        loadPlacesFromConfig()
+        refreshSavedPlacesDropdown()
+    end
+    return data
+end
+
+
+-- UI Toggle Button (appears when UI is closed) - FIXED DRAGGING VERSION
+local toggleButton = nil
+local toggleButtonEnabled = false
+
+local function createToggleButton()
+    if toggleButton then
+        toggleButton:Destroy()
+    end
+    
+    -- Only create on PC (not mobile/console)
+    if not UserInputService.TouchEnabled or UserInputService.KeyboardEnabled then
+        local screenGui = Instance.new("ScreenGui")
+        screenGui.Name = "XarxynthToggleButton"
+        screenGui.DisplayOrder = 999998
+        screenGui.ResetOnSpawn = false
+        screenGui.IgnoreGuiInset = true
+        screenGui.Parent = game:GetService("CoreGui")
+        
+        -- Container frame for dragging (80x80 SIZE, MOVED EVEN MORE RIGHT AND SLIGHTLY DOWN)
+        local container = Instance.new("Frame")
+        container.Name = "Container"
+        container.Size = UDim2.fromOffset(80, 80)  -- Set to 80x80 as requested
+        container.Position = UDim2.new(0, 400, 0.25, -40)  -- Moved even further right (400 from left) and slightly down (0.25)
+        container.AnchorPoint = Vector2.new(0, 0.5)
+        container.BackgroundTransparency = 1
+        container.Active = true -- IMPORTANT: Makes it draggable
+        container.Parent = screenGui
+        
+        -- Background circle
+        local background = Instance.new("Frame")
+        background.Name = "Background"
+        background.Size = UDim2.fromOffset(72, 72)  -- Adjusted for 80x80 container
+        background.Position = UDim2.fromScale(0.5, 0.5)
+        background.AnchorPoint = Vector2.new(0.5, 0.5)
+        background.BackgroundColor3 = Color3.fromHex("#18181b")
+        background.BorderSizePixel = 0
+        background.BackgroundTransparency = 0.3
+        background.ZIndex = 1
+        background.Parent = container
+        
+        local bgCorner = Instance.new("UICorner")
+        bgCorner.CornerRadius = UDim.new(1, 0)
+        bgCorner.Parent = background
+        
+        -- Gradient background matching WindUI theme
+        local gradient = Instance.new("UIGradient")
+        gradient.Color = ColorSequence.new{
+            ColorSequenceKeypoint.new(0, Color3.fromHex("#004d57")),
+            ColorSequenceKeypoint.new(1, Color3.fromHex("#560063"))
+        }
+        gradient.Rotation = 45
+        gradient.Parent = background
+        
+        -- Stroke container (behind button)
+        local strokeContainer = Instance.new("Frame")
+        strokeContainer.Name = "StrokeContainer"
+        strokeContainer.Size = UDim2.fromOffset(67, 67)  -- Adjusted for 80x80 container
+        strokeContainer.Position = UDim2.fromScale(0.5, 0.5)
+        strokeContainer.AnchorPoint = Vector2.new(0.5, 0.5)
+        strokeContainer.BackgroundColor3 = Color3.fromHex("#FFFFFF")
+        strokeContainer.BorderSizePixel = 0
+        strokeContainer.ZIndex = 2
+        strokeContainer.Parent = container
+        
+        local strokeCorner = Instance.new("UICorner")
+        strokeCorner.CornerRadius = UDim.new(1, 0)
+        strokeCorner.Parent = strokeContainer
+        
+        -- Gradient for the stroke
+        local strokeGradient = Instance.new("UIGradient")
+        strokeGradient.Color = ColorSequence.new{
+            ColorSequenceKeypoint.new(0, Color3.fromHex("#18181b")),
+            ColorSequenceKeypoint.new(1, Color3.fromHex("#004d57"))
+        }
+        strokeGradient.Rotation = 45
+        strokeGradient.Parent = strokeContainer
+        
+        -- Inner circle to create stroke effect
+        local innerCircle = Instance.new("Frame")
+        innerCircle.Name = "InnerCircle"
+        innerCircle.Size = UDim2.fromOffset(60, 60)  -- Adjusted for 80x80 container
+        innerCircle.Position = UDim2.fromScale(0.5, 0.5)
+        innerCircle.AnchorPoint = Vector2.new(0.5, 0.5)
+        innerCircle.BackgroundColor3 = Color3.fromHex("#18181b")
+        innerCircle.BorderSizePixel = 0
+        innerCircle.BackgroundTransparency = 0.3
+        innerCircle.ZIndex = 3
+        innerCircle.Parent = strokeContainer
+        
+        local innerCorner = Instance.new("UICorner")
+        innerCorner.CornerRadius = UDim.new(1, 0)
+        innerCorner.Parent = innerCircle
+        
+        -- Icon image button (ON TOP)
+        local button = Instance.new("ImageButton")
+        button.Name = "ToggleButton"
+        button.Size = UDim2.fromOffset(60, 60)  -- Adjusted for 80x80 container
+        button.Position = UDim2.fromScale(0.5, 0.5)
+        button.AnchorPoint = Vector2.new(0.5, 0.5)
+        button.Image = "rbxassetid://126009310328895"
+        button.BackgroundTransparency = 1
+        button.BorderSizePixel = 0
+        button.ImageTransparency = 0
+        button.ScaleType = Enum.ScaleType.Fit
+        button.ZIndex = 5 -- HIGH Z-INDEX so it's visible on top
+        button.Parent = container
+        
+        -- Make icon circular
+        local iconCorner = Instance.new("UICorner")
+        iconCorner.CornerRadius = UDim.new(1, 0)
+        iconCorner.Parent = button
+        
+        -- Shadow effect
+        local shadow = Instance.new("ImageLabel")
+        shadow.Name = "Shadow"
+        shadow.Size = UDim2.fromOffset(66, 66)  -- Adjusted for 80x80 container
+        shadow.Position = UDim2.fromScale(0.5, 0.52)
+        shadow.AnchorPoint = Vector2.new(0.5, 0.5)
+        shadow.BackgroundTransparency = 1
+        shadow.Image = "rbxassetid://126009310328895"
+        shadow.ImageColor3 = Color3.fromHex("#000000")
+        shadow.ImageTransparency = 0.6
+        shadow.ZIndex = 0
+        shadow.ScaleType = Enum.ScaleType.Fit
+        shadow.Parent = container
+        
+        local shadowCorner = Instance.new("UICorner")
+        shadowCorner.CornerRadius = UDim.new(1, 0)
+        shadowCorner.Parent = shadow
+        
+        -- Animated gradient rotation
+        task.spawn(function()
+            while toggleButtonEnabled and strokeGradient do
+                for rotation = 0, 360, 2 do
+                    if not toggleButtonEnabled or not strokeGradient then break end
+                    strokeGradient.Rotation = rotation
+                    task.wait(0.03)
+                end
+            end
+        end)
+        
+        -- ==================== FIXED DRAGGING FUNCTIONALITY ====================
+        local UIS = game:GetService("UserInputService")
+        local dragging = false
+        local dragInput
+        local dragStart
+        local startPos
+        local hasMoved = false
+        
+        local function update(input)
+            local delta = input.Position - dragStart
+            container.Position = UDim2.new(
+                startPos.X.Scale,
+                startPos.X.Offset + delta.X,
+                startPos.Y.Scale,
+                startPos.Y.Offset + delta.Y
+            )
+            
+            -- Track if we've moved significantly
+            if math.abs(delta.X) > 5 or math.abs(delta.Y) > 5 then
+                hasMoved = true
+            end
+        end
+        
+        -- Start dragging when mouse is pressed on button
+        button.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                dragging = true
+                dragStart = input.Position
+                startPos = container.Position
+                hasMoved = false
+                
+                input.Changed:Connect(function()
+                    if input.UserInputState == Enum.UserInputState.End then
+                        dragging = false
+                    end
+                end)
+            end
+        end)
+        
+        -- Update position while dragging
+        button.InputChanged:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseMovement then
+                dragInput = input
+            end
+        end)
+        
+        UIS.InputChanged:Connect(function(input)
+            if dragging and input == dragInput then
+                update(input)
+            end
+        end)
+        
+        -- Click to toggle UI (only if not dragging)
+        button.MouseButton1Click:Connect(function()
+            -- Only trigger if we didn't drag
+            if not hasMoved then
+                -- Press down animation
+                local shrinkTween = TweenService:Create(button, TweenInfo.new(
+                    0.1, 
+                    Enum.EasingStyle.Quad, 
+                    Enum.EasingDirection.Out
+                ), {
+                    Size = UDim2.fromOffset(50, 50)  -- Adjusted for 80x80 container
+                })
+                
+                local bgShrink = TweenService:Create(background, TweenInfo.new(
+                    0.1, 
+                    Enum.EasingStyle.Quad, 
+                    Enum.EasingDirection.Out
+                ), {
+                    Size = UDim2.fromOffset(62, 62)  -- Adjusted for 80x80 container
+                })
+                
+                local strokeShrink = TweenService:Create(strokeContainer, TweenInfo.new(
+                    0.1, 
+                    Enum.EasingStyle.Quad, 
+                    Enum.EasingDirection.Out
+                ), {
+                    Size = UDim2.fromOffset(57, 57)  -- Adjusted for 80x80 container
+                })
+                
+                local innerShrink = TweenService:Create(innerCircle, TweenInfo.new(
+                    0.1, 
+                    Enum.EasingStyle.Quad, 
+                    Enum.EasingDirection.Out
+                ), {
+                    Size = UDim2.fromOffset(50, 50)  -- Adjusted for 80x80 container
+                })
+                
+                shrinkTween:Play()
+                bgShrink:Play()
+                strokeShrink:Play()
+                innerShrink:Play()
+                shrinkTween.Completed:Wait()
+                
+                -- Bounce back animation
+                local bounceTween = TweenService:Create(button, TweenInfo.new(
+                    0.4, 
+                    Enum.EasingStyle.Elastic, 
+                    Enum.EasingDirection.Out
+                ), {
+                    Size = UDim2.fromOffset(60, 60)  -- Back to 80x80 container size
+                })
+                
+                local bgBounce = TweenService:Create(background, TweenInfo.new(
+                    0.4, 
+                    Enum.EasingStyle.Elastic, 
+                    Enum.EasingDirection.Out
+                ), {
+                    Size = UDim2.fromOffset(72, 72)  -- Back to 80x80 container size
+                })
+                
+                local strokeBounce = TweenService:Create(strokeContainer, TweenInfo.new(
+                    0.4, 
+                    Enum.EasingStyle.Elastic, 
+                    Enum.EasingDirection.Out
+                ), {
+                    Size = UDim2.fromOffset(67, 67)  -- Back to 80x80 container size
+                })
+                
+                local innerBounce = TweenService:Create(innerCircle, TweenInfo.new(
+                    0.4, 
+                    Enum.EasingStyle.Elastic, 
+                    Enum.EasingDirection.Out
+                ), {
+                    Size = UDim2.fromOffset(60, 60)  -- Back to 80x80 container size
+                })
+                
+                bounceTween:Play()
+                bgBounce:Play()
+                strokeBounce:Play()
+                innerBounce:Play()
+                
+                -- Trigger the V keybind to open UI
+                if UserInputService.KeyboardEnabled then
+                    local VirtualInputManager = game:GetService("VirtualInputManager")
+                    VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.V, false, game)
+                    task.wait(0.05)
+                    VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.V, false, game)
+                end
+            end
+        end)
+        -- ==================== END FIXED DRAGGING ====================
+        
+        -- Hover effects (adjusted for 80x80 container)
+        button.MouseEnter:Connect(function()
+            if not dragging then
+                TweenService:Create(button, TweenInfo.new(0.2), {
+                    Size = UDim2.fromOffset(66, 66)  -- Adjusted hover size for 80x80
+                }):Play()
+                TweenService:Create(background, TweenInfo.new(0.2), {
+                    Size = UDim2.fromOffset(78, 78)  -- Adjusted hover size for 80x80
+                }):Play()
+                TweenService:Create(strokeContainer, TweenInfo.new(0.2), {
+                    Size = UDim2.fromOffset(73, 73)  -- Adjusted hover size for 80x80
+                }):Play()
+                TweenService:Create(innerCircle, TweenInfo.new(0.2), {
+                    Size = UDim2.fromOffset(66, 66)  -- Adjusted hover size for 80x80
+                }):Play()
+            end
+        end)
+        
+        button.MouseLeave:Connect(function()
+            if not dragging then
+                TweenService:Create(button, TweenInfo.new(0.2), {
+                    Size = UDim2.fromOffset(60, 60)  -- Back to normal size for 80x80
+                }):Play()
+                TweenService:Create(background, TweenInfo.new(0.2), {
+                    Size = UDim2.fromOffset(72, 72)  -- Back to normal size for 80x80
+                }):Play()
+                TweenService:Create(strokeContainer, TweenInfo.new(0.2), {
+                    Size = UDim2.fromOffset(67, 67)  -- Back to normal size for 80x80
+                }):Play()
+                TweenService:Create(innerCircle, TweenInfo.new(0.2), {
+                    Size = UDim2.fromOffset(60, 60)  -- Back to normal size for 80x80
+                }):Play()
+            end
+        end)
+        
+        toggleButton = screenGui
+        toggleButtonEnabled = true
+        
+        -- Fade in animation
+        button.ImageTransparency = 1
+        background.BackgroundTransparency = 1
+        strokeContainer.BackgroundTransparency = 1
+        shadow.ImageTransparency = 1
+        
+        TweenService:Create(button, TweenInfo.new(0.3), {ImageTransparency = 0}):Play()
+        TweenService:Create(background, TweenInfo.new(0.3), {BackgroundTransparency = 0.3}):Play()
+        TweenService:Create(strokeContainer, TweenInfo.new(0.3), {BackgroundTransparency = 0}):Play()
+        TweenService:Create(shadow, TweenInfo.new(0.3), {ImageTransparency = 0.6}):Play()
+    end
+end
+
+local function removeToggleButton()
+    if toggleButton then
+        local container = toggleButton:FindFirstChild("Container")
+        if container then
+            local button = container:FindFirstChild("ToggleButton")
+            local background = container:FindFirstChild("Background")
+            if button then
+                -- Fade out animation
+                TweenService:Create(button, TweenInfo.new(0.2), {ImageTransparency = 1}):Play()
+                local stroke = button:FindFirstChild("UIStroke")
+                if stroke then
+                    TweenService:Create(stroke, TweenInfo.new(0.2), {Transparency = 1}):Play()
+                end
+            end
+            if background then
+                TweenService:Create(background, TweenInfo.new(0.2), {BackgroundTransparency = 1}):Play()
+            end
+            task.wait(0.2)
+        end
+        toggleButton:Destroy()
+        toggleButton = nil
+        toggleButtonEnabled = false
+    end
+end
+
+-- Monitor UI visibility state
+task.spawn(function()
+    local lastVisible = true
+    while task.wait(0.5) do
+        pcall(function()
+            local uiVisible = false
+            -- Check if the main UI container is visible
+            for _, gui in pairs(game:GetService("CoreGui"):GetChildren()) do
+                if gui.Name:find("Wind") or gui.Name:find("Xarxynth") then
+                    for _, child in pairs(gui:GetDescendants()) do
+                        if child:IsA("Frame") and child.Visible and child.Size.X.Offset > 500 then
+                            uiVisible = true
+                            break
+                        end
+                    end
+                end
+            end
+            
+            -- Show toggle button only when UI is closed
+            if not uiVisible and lastVisible then
+                createToggleButton()
+            elseif uiVisible and not lastVisible then
+                removeToggleButton()
+            end
+            
+            lastVisible = uiVisible
+        end)
+    end
+end)
+
+-- Initial state check
+task.wait(1)
+pcall(function()
+    local uiVisible = false
+    for _, gui in pairs(game:GetService("CoreGui"):GetChildren()) do
+        if gui.Name:find("Wind") or gui.Name:find("Xarxynth") then
+            for _, child in pairs(gui:GetDescendants()) do
+                if child:IsA("Frame") and child.Visible and child.Size.X.Offset > 500 then
+                    uiVisible = true
+                    break
+                end
+            end
+        end
+    end
+    if not uiVisible then
+        createToggleButton()
+    end
+end)
