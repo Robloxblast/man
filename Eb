@@ -1,0 +1,843 @@
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+local Window = Rayfield:CreateWindow({
+   Name = "Elite Basketball",
+   Icon = 0, -- Icon in Topbar. Can use Lucide Icons (string) or Roblox Image (number). 0 to use no icon (default).
+   LoadingTitle = "Loading Script Please Wait...",
+   LoadingSubtitle = "by Xarxynth Hub",
+   ShowText = "Rayfield", -- for mobile users to unhide Rayfield, change if you'd like
+   Theme = "Default", -- Check https://docs.sirius.menu/rayfield/configuration/themes
+
+   ToggleUIKeybind = "N", -- The keybind to toggle the UI visibility (string like "K" or Enum.KeyCode)
+
+   DisableRayfieldPrompts = false,
+   DisableBuildWarnings = false, -- Prevents Rayfield from emitting warnings when the script has a version mismatch with the interface.
+
+   ConfigurationSaving = {
+      Enabled = true,
+      FolderName = nil, -- Create a custom folder for your hub/game
+      FileName = "Big Hub"
+   },
+
+   Discord = {
+      Enabled = false, -- Prompt the user to join your Discord server if their executor supports it
+      Invite = "noinvitelink", -- The Discord invite code, do not include Discord.gg/. E.g. Discord.gg/ ABCD would be ABCD
+      RememberJoins = true -- Set this to false to make them join the Discord every time they load it up
+   },
+
+   KeySystem = false, -- Set this to true to use our key system
+   KeySettings = {
+      Title = "Untitled",
+      Subtitle = "Key System",
+      Note = "No method of obtaining the key is provided", -- Use this to tell the user how to get a key
+      FileName = "Key", -- It is recommended to use something unique, as other scripts using Rayfield may overwrite your key file
+      SaveKey = true, -- The user's key will be saved, but if you change the key, they will be unable to use your script
+      GrabKeyFromSite = false, -- If this is true, set Key below to the RAW site you would like Rayfield to get the key from
+      Key = {"Hello"} -- List of keys that the system will accept, can be RAW file links (pastebin, github, etc.) or simple strings ("hello", "key22")
+   }
+})
+
+local Tab = Window:CreateTab("Main", "rewind")
+
+local user = game:GetService("UserInputService")
+local vim = game:GetService("VirtualInputManager")
+local rs = game:GetService("RunService")
+local players = game:GetService("Players")
+
+local plr = players.LocalPlayer
+local char = plr.Character or plr.CharacterAdded:Wait()
+local hum = char:WaitForChild("Humanoid")
+local dribbleHeld = false
+local dribbleTimer = 0.6
+local offDribbleDelay = 0.64 -- default
+local holdingDunk = false
+local startedDunk = false
+local dribbleHeldDunk = false
+
+local bar = workspace:WaitForChild(plr.Name):WaitForChild("HumanoidRootPart"):WaitForChild("Meter"):WaitForChild("Fill")
+plr.CharacterAdded:Connect(function()
+    bar = workspace:WaitForChild(plr.Name):WaitForChild("HumanoidRootPart"):WaitForChild("Meter"):WaitForChild("Fill")
+end)
+
+local enabled = false
+local delay = 0.64
+local delay2 = 0.64
+local offdribbledelay2 = 0.64
+
+local holding = false
+local started = false
+
+local dribbleAnims = {
+"rbxassetid://78127722486612","rbxassetid://131853984134104","rbxassetid://95091288976565","rbxassetid://129062002724506","rbxassetid://90193223305634","rbxassetid://125061926986969","rbxassetid://83028678449210","rbxassetid://111840088279771","rbxassetid://125691426081341","rbxassetid://74779113551731","rbxassetid://95091288976565","rbxassetid://129062002724506","rbxassetid://82093951532852","rbxassetid://116670658401557","rbxassetid://95091288976565","rbxassetid://129062002724506","rbxassetid://128409186066292","rbxassetid://74969199619319","rbxassetid://95091288976565","rbxassetid://129062002724506","rbxassetid://140492191092083","rbxassetid://106213933776508","rbxassetid://103502875951492","rbxassetid://130294670802066","rbxassetid://78844202263851","rbxassetid://91487003382595","rbxassetid://95091288976565","rbxassetid://129062002724506","rbxassetid://115429555592872","rbxassetid://131014574912252","rbxassetid://78127722486612","rbxassetid://131853984134104","rbxassetid://108547162603461","rbxassetid://118164808293582","rbxassetid://95091288976565","rbxassetid://129062002724506","rbxassetid://84528902316272","rbxassetid://90340584686812","rbxassetid://95091288976565","rbxassetid://129062002724506","rbxassetid://78844202263851","rbxassetid://91487003382595","rbxassetid://95091288976565","rbxassetid://129062002724506","rbxassetid://78127722486612","rbxassetid://131853984134104","rbxassetid://140352095072289","rbxassetid://136817655188860",
+"rbxassetid://88438414122503","rbxassetid://95537331233976","rbxassetid://78169315938033","rbxassetid://96425389271207","rbxassetid://104382571483948","rbxassetid://75687818527516","rbxassetid://78169315938033","rbxassetid://96425389271207","rbxassetid://95614224839085","rbxassetid://127340746301378","rbxassetid://78169315938033","rbxassetid://96425389271207","rbxassetid://139446814541644","rbxassetid://84135192955335","rbxassetid://104133689611971","rbxassetid://89279850155883","rbxassetid://88438414122503","rbxassetid://95537331233976","rbxassetid://78169315938033","rbxassetid://96425389271207","rbxassetid://129113899033983","rbxassetid://93610534808066","rbxassetid://78169315938033","rbxassetid://96425389271207","rbxassetid://104954847886412","rbxassetid://118639688119158","rbxassetid://78169315938033","rbxassetid://96425389271207","rbxassetid://130277469529571","rbxassetid://73372762695264","rbxassetid://78169315938033","rbxassetid://96425389271207","rbxassetid://76666910204312","rbxassetid://121862045502134","rbxassetid://139683515827681","rbxassetid://80822190041306","rbxassetid://87427266735374","rbxassetid://126577378341046","rbxassetid://78169315938033","rbxassetid://96425389271207","rbxassetid://111835759073554","rbxassetid://120906796157297","rbxassetid://78169315938033","rbxassetid://96425389271207",
+"rbxassetid://103804533905677","rbxassetid://99106016469816","rbxassetid://129644703203837","rbxassetid://76210893642038",
+"rbxassetid://118380632013090","rbxassetid://78588406619197","rbxassetid://105138498546444","rbxassetid://106851081291547","rbxassetid://102711414957366","rbxassetid://118995361089743","rbxassetid://130857005251772","rbxassetid://107740398847714",
+"rbxassetid://91934039894283","rbxassetid://101732488756602","rbxassetid://132996945901986","rbxassetid://74233100938419","rbxassetid://78831695883330","rbxassetid://70660962532804",
+"rbxassetid://91393141427174","rbxassetid://126691020823432","rbxassetid://99589768200297","rbxassetid://77888376895281","rbxassetid://98399543473825","rbxassetid://111456691656189","rbxassetid://88994289423131","rbxassetid://89738584972180","rbxassetid://77888376895281","rbxassetid://99589768200297","rbxassetid://140128108431058","rbxassetid://83718339373001","rbxassetid://84994915017774","rbxassetid://116538809158202","rbxassetid://99589768200297","rbxassetid://77888376895281",
+"rbxassetid://102573775508420","rbxassetid://121574179169220",
+"rbxassetid://99967106059631","rbxassetid://85220445716016",
+"rbxassetid://111196861650027","rbxassetid://116583061391073","rbxassetid://80599239977139","rbxassetid://108911861913881","rbxassetid://135771783545483","rbxassetid://108340889592749","rbxassetid://116130009092526","rbxassetid://71465663188546","rbxassetid://72136266246021","rbxassetid://77780027409247","rbxassetid://93983484157639","rbxassetid://94402191009102",
+"rbxassetid://134625676399813","rbxassetid://102216403446141","rbxassetid://125362340417495","rbxassetid://99297076065585","rbxassetid://80749110373682","rbxassetid://99281670071274","rbxassetid://80749110373682","rbxassetid://99281670071274","rbxassetid://112297955265954","rbxassetid://131601006050197","rbxassetid://131601006050197","rbxassetid://112297955265954","rbxassetid://84059386031184","rbxassetid://124922042523719","rbxassetid://124922042523719","rbxassetid://84059386031184","rbxassetid://94220909039707","rbxassetid://119812016484213","rbxassetid://140119757539059","rbxassetid://74366785678688",
+"rbxassetid://136659368653342","rbxassetid://126433470055262","rbxassetid://98003452868609","rbxassetid://93532475445916","rbxassetid://119483886873532","rbxassetid://86828404810765","rbxassetid://99228081047775","rbxassetid://106048592989307","rbxassetid://80942583202298","rbxassetid://78964825956148","rbxassetid://133989932588187","rbxassetid://97522620242316","rbxassetid://139500401082925","rbxassetid://140061209331610",
+"rbxassetid://113009856060899","rbxassetid://86781548607958","rbxassetid://87649264988655","rbxassetid://82132374516830","rbxassetid://117268600295372","rbxassetid://70480720280908","rbxassetid://108931280913140","rbxassetid://122863626653176","rbxassetid://134090537082574","rbxassetid://105340414997552","rbxassetid://118245515249887","rbxassetid://108146633752730","rbxassetid://119673415566184","rbxassetid://86110034059380","rbxassetid://78992235129273","rbxassetid://117348928649731"
+}
+
+local pumpfakeAnims = {
+"rbxassetid://123372538967108",
+"rbxassetid://117838924397169",
+"rbxassetid://138886454615158",
+"rbxassetid://124589360000985",
+"rbxassetid://72032404511996",
+"rbxassetid://92653827033573",
+"rbxassetid://132783382688599",
+"rbxassetid://129122279284661",
+"rbxassetid://76958769455113",
+"rbxassetid://92564024235928"
+}
+
+local pumpfakeLookup = {}
+for _, id in ipairs(pumpfakeAnims) do
+    pumpfakeLookup[id] = true
+end
+
+
+local function isPumpfaking()
+    for _, track in ipairs(hum:GetPlayingAnimationTracks()) do
+        if track.Animation and pumpfakeLookup[track.Animation.AnimationId] then
+            return true
+        end
+    end
+    return false
+end
+
+
+local function isDribbling()
+    for _, track in ipairs(hum:GetPlayingAnimationTracks()) do
+        for _, id in ipairs(dribbleAnims) do
+            if track.Animation and track.Animation.AnimationId == id then
+                return true
+            end
+        end
+    end
+    return false
+end
+
+local Toggle = Tab:CreateToggle({
+   Name = "Auto Release",
+   CurrentValue = false,
+   Flag = "AutoReleaseToggle",
+   Callback = function(Value)
+       enabled = Value
+   end,
+})
+
+local Paragraph = Tab:CreateParagraph({Title = "Info", Content = "Slider For Shooting"})
+
+local Slider = Tab:CreateSlider({
+   Name = "Release Delay",
+   Range = {0, 1},
+   Increment = 0.01,
+   Suffix = "s",
+   CurrentValue = 0.22,
+   Flag = "ReleaseDelay",
+   Callback = function(Value)
+       delay = Value
+   end,
+})
+
+
+
+local OffDribbleSlider = Tab:CreateSlider({
+    Name = "Off Dribble Delay",
+    Range = {0, 1},
+    Increment = 0.01,
+    Suffix = "s",
+    CurrentValue = offDribbleDelay,
+    Flag = "OffDribbleDelay",
+    Callback = function(Value)
+        offDribbleDelay = Value
+    end,
+})
+
+local Paragraph = Tab:CreateParagraph({Title = "Info", Content = "Slider For Dunking"})
+
+local Slider = Tab:CreateSlider({
+   Name = "Release Delay",
+   Range = {0, 1},
+   Increment = 0.01,
+   Suffix = "s",
+   CurrentValue = 0.22,
+   Flag = "ReleaseDelay2",
+   Callback = function(Value)
+       delay2 = Value
+   end,
+})
+
+
+
+local OffDribbleSlider = Tab:CreateSlider({
+    Name = "Off Dribble Delay",
+    Range = {0, 1},
+    Increment = 0.01,
+    Suffix = "s",
+    CurrentValue = 0.06,
+    Flag = "OffDribbleDelay2",
+    Callback = function(Value)
+        offdribbledelay2 = Value
+    end,
+})
+
+user.InputBegan:Connect(function(i, g)
+    if g or not enabled then return end
+
+    if (i.KeyCode == Enum.KeyCode.E or
+    i.KeyCode == Enum.KeyCode.ButtonX) and not holding then
+
+    if isPumpfaking() then
+        task.spawn(function()
+            repeat task.wait()
+            until not isPumpfaking()
+
+            if not holding and enabled then
+                holding = true
+                started = false
+                dribbleHeld = isDribbling()
+                vim:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+            end
+        end)
+        return
+    end
+
+    holding = true
+    started = false
+    dribbleHeld = isDribbling()
+    vim:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+end
+
+    -- Dunking (Space / Y / Triangle)
+    if (i.KeyCode == Enum.KeyCode.Space or
+        i.KeyCode == Enum.KeyCode.ButtonY) and not holdingDunk then
+        holdingDunk = true
+        startedDunk = false
+        dribbleHeldDunk = isDribbling()
+        vim:SendKeyEvent(true, Enum.KeyCode.Space, false, game)
+    end
+end)
+
+rs.Heartbeat:Connect(function()
+    -- Shooting logic
+    if enabled and holding and not started then
+        if bar.Visible then
+            started = true
+            local actualDelay = dribbleHeld and offDribbleDelay or delay
+            dribbleHeld = false
+
+            task.delay(actualDelay, function()
+                if holding then
+                    vim:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+                    holding = false
+                    started = false
+                end
+            end)
+        end
+    end
+
+    -- Dunking logic
+    if enabled and holdingDunk and not startedDunk then
+        if bar.Visible and not isDribbling() then
+            startedDunk = true
+            local actualDelay = dribbleHeldDunk and offdribbledelay2 or delay2
+            dribbleHeldDunk = false
+
+            task.delay(actualDelay, function()
+                if holdingDunk then
+                    vim:SendKeyEvent(false, Enum.KeyCode.Space, false, game)
+                    holdingDunk = false
+                    startedDunk = false
+                end
+            end)
+        end
+    end
+end)
+
+local p = game:GetService("Players").LocalPlayer
+local c = p.Character or p.CharacterAdded:Wait()
+local hrp = c:WaitForChild("HumanoidRootPart")
+
+local enabled = false
+local glideSpeed = 10 -- initial value
+
+local Toggle = Tab:CreateToggle({
+    Name = "Dribble Glide",
+    CurrentValue = false,
+    Flag = "DribbleGlide",
+    Callback = function(v)
+        enabled = v
+    end,
+})
+
+local Slider = Tab:CreateSlider({
+    Name = "Glide Speed",
+    Range = {1, 100},
+    Increment = 0.1,
+    Suffix = "",
+    CurrentValue = glideSpeed,
+    Flag = "GlideSpeed",
+    Callback = function(v)
+        glideSpeed = v
+    end,
+})
+
+local function isDribbling()
+    local hum = c:FindFirstChildOfClass("Humanoid")
+    if not hum then return false end
+    local animator = hum:FindFirstChildOfClass("Animator")
+    if not animator then return false end
+
+    for _, track in pairs(animator:GetPlayingAnimationTracks()) do
+        for _, id in pairs(dribbleAnims) do
+            if track.Animation.AnimationId == id then
+                return true
+            end
+        end
+    end
+    return false
+end
+
+game:GetService("RunService").Heartbeat:Connect(function(delta)
+    if enabled and isDribbling() then
+        local bv = hrp:FindFirstChild("Movement")
+        if bv then
+            local vel = bv.Velocity
+            local targetVel = Vector3.new(
+                vel.X ~= 0 and (vel.X > 0 and glideSpeed or -glideSpeed) or 0,
+                vel.Y,
+                vel.Z ~= 0 and (vel.Z > 0 and glideSpeed or -glideSpeed) or 0
+            )
+            bv.Velocity = vel:Lerp(targetVel, 0.1 * delta * 60)
+        end
+    end
+end)
+
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local vim = game:GetService("VirtualInputManager")
+local LP = Players.LocalPlayer
+
+local ignoredPlayers = {}
+local toggle = false
+local meterCheck = false
+local meterPercent = 0.75
+local delayShooting, delayDunk, delayFloater = 0.2, 0.3, 0.15
+local modeSelection = "Shootings"
+local jumpedTracks = {}
+
+-- Auto Jump Toggle
+local AutoJumpToggle = Tab:CreateToggle({
+    Name = "Auto Block",
+    CurrentValue = toggle,
+    Flag = "AutoJumpToggle",
+    Callback = function(Value)
+        toggle = Value
+    end
+})
+
+
+-- Whitelist Dropdown
+local WhitelistDropdown = Tab:CreateDropdown({
+    Name = "Select Player (Whitelist)",
+    Options = ignoredPlayers,
+    CurrentOption = {},
+    MultipleOptions = false,
+    Flag = "WhitelistDropdown",
+    Callback = function(Options)
+        -- Selection is automatically handled via Options table
+    end
+})
+
+-- Whitelist Input
+local WhitelistInput = Tab:CreateInput({
+    Name = "Add Player to Whitelist",
+    CurrentValue = "",
+    PlaceholderText = "Player Name",
+    RemoveTextAfterFocusLost = true,
+    Flag = "WhitelistInput",
+    Callback = function(Text)
+        local inputText = Text:lower()
+        if inputText == "" then return end
+        for _, plr in pairs(Players:GetPlayers()) do
+            if plr ~= LP then
+                local username = plr.Name
+                local displayName = plr.DisplayName
+                if string.find(username:lower(), inputText) or string.find(displayName:lower(), inputText) then
+                    if not table.find(ignoredPlayers, username) then
+                        table.insert(ignoredPlayers, username)
+                        WhitelistDropdown:Refresh(ignoredPlayers)
+                    end
+                end
+            end
+        end
+    end
+})
+
+
+-- Remove selected whitelist player
+local RemoveButton = Tab:CreateButton({
+    Name = "Remove Selected Player",
+    Callback = function()
+        local sel = WhitelistDropdown.CurrentOption[1]
+        if sel then
+            for i, v in pairs(ignoredPlayers) do
+                if v == sel then
+                    table.remove(ignoredPlayers, i)
+                    break
+                end
+            end
+            WhitelistDropdown:Refresh(ignoredPlayers)
+        end
+    end
+})
+
+-- Mode Dropdown
+local ModeDropdown = Tab:CreateDropdown({
+    Name = "Mode",
+    Options = {"Shootings", "Dunks", "Floaters", "All"},
+    CurrentOption = {modeSelection},
+    MultipleOptions = false,
+    Flag = "ModeDropdown",
+    Callback = function(Options)
+        modeSelection = Options[1]
+    end
+})
+
+-- Meter Check Toggle
+local MeterToggle = Tab:CreateToggle({
+    Name = "Meter Check",
+    CurrentValue = meterCheck,
+    Flag = "MeterToggle",
+    Callback = function(Value)
+        meterCheck = Value
+    end
+})
+
+-- Sliders for delays
+local ShootDelaySlider = Tab:CreateSlider({
+    Name = "Shooting Delay",
+    Range = {0, 1},
+    Increment = 0.01,
+    Suffix = "s",
+    CurrentValue = delayShooting,
+    Flag = "ShootDelaySlider",
+    Callback = function(Value)
+        delayShooting = Value
+    end
+})
+
+local DunkDelaySlider = Tab:CreateSlider({
+    Name = "Dunk Delay",
+    Range = {0, 1},
+    Increment = 0.01,
+    Suffix = "s",
+    CurrentValue = delayDunk,
+    Flag = "DunkDelaySlider",
+    Callback = function(Value)
+        delayDunk = Value
+    end
+})
+
+local FloaterDelaySlider = Tab:CreateSlider({
+    Name = "Floater Delay",
+    Range = {0, 1},
+    Increment = 0.01,
+    Suffix = "s",
+    CurrentValue = delayFloater,
+    Flag = "FloaterDelaySlider",
+    Callback = function(Value)
+        delayFloater = Value
+    end
+})
+
+-- Meter % Input
+local MeterInput = Tab:CreateInput({
+    Name = "Meter % (0-1)",
+    CurrentValue = tostring(meterPercent),
+    PlaceholderText = "0.75",
+    RemoveTextAfterFocusLost = false,
+    Flag = "MeterInput",
+    Callback = function(Text)
+        local val = tonumber(Text)
+        if val and val >= 0 and val <= 1 then
+            meterPercent = val
+        end
+    end
+})
+
+-- Heartbeat logic
+RunService.Heartbeat:Connect(function()
+    if not toggle then return end
+
+    local animList = {}
+    if modeSelection == "Shootings" then
+        for _, id in ipairs(shootingAnims) do animList[id] = true end
+    elseif modeSelection == "Dunks" then
+        for _, id in ipairs(dunkAnims) do animList[id] = true end
+    elseif modeSelection == "Floaters" then
+        for _, id in ipairs(floaterAnims) do animList[id] = true end
+    else
+        for _, id in ipairs(shootingAnims) do animList[id] = true end
+        for _, id in ipairs(dunkAnims) do animList[id] = true end
+        for _, id in ipairs(floaterAnims) do animList[id] = true end
+    end
+
+    local closestPlayer
+    local shortestDist = 20
+    local detectedAnimId
+
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= LP and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+            if table.find(ignoredPlayers, plr.Name) then continue end
+            local dist = (LP.Character.HumanoidRootPart.Position - plr.Character.HumanoidRootPart.Position).Magnitude
+            if dist <= shortestDist then
+                local hum = plr.Character:FindFirstChild("Humanoid")
+                local animator = hum and hum:FindFirstChildOfClass("Animator")
+                if animator then
+                    for _, track in ipairs(animator:GetPlayingAnimationTracks()) do
+                        local animId = tonumber(track.Animation.AnimationId:match("%d+"))
+                        if animList[animId] then
+                            closestPlayer = plr
+                            shortestDist = dist
+                            detectedAnimId = animId
+                            break
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    if closestPlayer then
+        local jumpDelay = delayShooting
+        if detectedAnimId then
+            if table.find(dunkAnims, detectedAnimId) then
+                jumpDelay = delayDunk
+            elseif table.find(floaterAnims, detectedAnimId) then
+                jumpDelay = delayFloater
+            end
+
+            local meter = closestPlayer.Character.HumanoidRootPart:FindFirstChild("Meter")
+            local meterValid = meter and meter:FindFirstChild("Fill") and meter.Fill.Size.X.Scale >= meterPercent
+
+            if not meterCheck or (meterCheck and meterValid) then
+                jumpedTracks[detectedAnimId] = true
+                task.spawn(function()
+                    task.wait(jumpDelay)
+                    vim:SendKeyEvent(true, Enum.KeyCode.Space, false, game)
+                    task.wait()
+                    vim:SendKeyEvent(false, Enum.KeyCode.Space, false, game)
+                end)
+            end
+        end
+    end
+
+    for _, plr in ipairs(Players:GetPlayers()) do
+        local hum = plr.Character and plr.Character:FindFirstChild("Humanoid")
+        local animator = hum and hum:FindFirstChildOfClass("Animator")
+        if animator then
+            for _, track in ipairs(animator:GetPlayingAnimationTracks()) do
+                local animId = tonumber(track.Animation.AnimationId:match("%d+"))
+                jumpedTracks[animId] = nil
+            end
+        end
+    end
+end)
+
+-- local Tab = Window:CreateTab("Visuals", "rewind")
+
+local Tab = Window:CreateTab("Macros", "rewind")
+
+local HttpService = game:GetService("HttpService")
+local UserInputService = game:GetService("UserInputService")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+
+local Macros = {}
+local MacroConfigs = {}
+local SavedConfigNames = {}
+local NumberKeyMap = {
+    ["0"] = "Zero",
+    ["1"] = "One",
+    ["2"] = "Two",
+    ["3"] = "Three",
+    ["4"] = "Four",
+    ["5"] = "Five",
+    ["6"] = "Six",
+    ["7"] = "Seven",
+    ["8"] = "Eight",
+    ["9"] = "Nine",
+}
+
+local MacroDropdown, MacroInput, MacroKeyInput, MacroAddButton, MacroDeleteButton
+local ConfigDropdown, ConfigInput, ConfigSaveButton
+
+-- Refresh macro dropdown
+local function RefreshMacroDropdown()
+    local options = {}
+    for i, macro in ipairs(Macros) do
+        table.insert(options, macro.key.." = "..macro.sequence)
+    end
+    MacroDropdown:Refresh(options)
+end
+-- -------------------------
+-- Macro Dropdown
+-- -------------------------
+MacroDropdown = Tab:CreateDropdown({
+    Name = "Macros",
+    Options = {},
+    CurrentOption = {},
+    MultipleOptions = false,
+    Flag = "MacroDropdown",
+   Callback = function(option)
+    local index = table.find(MacroDropdown.Options, option[1])
+    local macro = index and Macros[index]
+
+    MacroInput:Set(tostring(macro and macro.sequence or ""))
+    MacroKeyInput:Set(tostring(macro and macro.key or ""))
+    end,
+})
+
+-- Macro sequence input
+MacroInput = Tab:CreateInput({
+    Name = "Macro Sequence",
+    CurrentValue = "",
+    PlaceholderText = "Type your macro...",
+    RemoveTextAfterFocusLost = false,
+    Flag = "MacroInput",
+    Callback = function(text)
+        local selected = MacroDropdown.CurrentOption[1]
+        local macro = selected and Macros[selected]
+        if macro then
+            macro.sequence = tostring(text or ""):upper()
+        end
+    end,
+})
+-- Macro keybind input
+MacroKeyInput = Tab:CreateInput({
+    Name = "Macro Keybind",
+    CurrentValue = "",
+    PlaceholderText = "Press key...",
+    RemoveTextAfterFocusLost = false,
+    Flag = "MacroKeyInput",
+    Callback = function(text)
+        local selected = MacroDropdown.CurrentOption[1]
+        local macro = selected and Macros[selected]
+        if macro then
+            local keyStr = tostring(text or ""):upper()
+
+            -- convert numbers 0-9 to Enum names
+            if NumberKeyMap[keyStr] then
+                keyStr = NumberKeyMap[keyStr]
+            end
+
+            local keyEnum = Enum.KeyCode[keyStr]
+            if keyEnum then
+                macro.key = keyStr
+                macro.keyEnum = keyEnum
+            else
+                warn("Invalid keybind: "..text)
+            end
+        end
+    end,
+})
+
+-- Add new macro
+MacroAddButton = Tab:CreateButton({
+    Name = "Add Macro",
+    Callback = function()
+        local seq = tostring(MacroInput.CurrentValue or ""):upper()
+        local keyStr = tostring(MacroKeyInput.CurrentValue or ""):upper()
+
+        if NumberKeyMap[keyStr] then
+            keyStr = NumberKeyMap[keyStr]
+        end
+
+        local keyEnum = Enum.KeyCode[keyStr]
+
+        if seq ~= "" and keyEnum then
+            local macro = {
+                key = keyStr,
+                keyEnum = keyEnum,
+                sequence = seq
+            }
+
+            table.insert(Macros, macro)
+
+            -- refresh dropdown
+            RefreshMacroDropdown()
+
+            -- select the newly added macro safely
+            local name = macro.key.." = "..macro.sequence
+            task.wait()
+            MacroDropdown:Set({name})
+
+        else
+            warn("Invalid macro input")
+        end
+    end,
+})
+
+-- Delete macro
+MacroDeleteButton = Tab:CreateButton({
+    Name = "Delete Macro",
+    Callback = function()
+        local selected = MacroDropdown.CurrentOption[1]
+        if selected then
+            -- find the macro in the array
+            for i = #Macros, 1, -1 do
+                local macro = Macros[i]
+                local name = (macro.key or "").." = "..(macro.sequence or "")
+                if name == selected then
+                    table.remove(Macros, i)
+                    break
+                end
+            end
+            RefreshMacroDropdown()
+        end
+
+        MacroInput:Set("")
+        MacroKeyInput:Set("")
+    end,
+})
+-- -------------------------
+-- Hotkey execution
+-- -------------------------
+UserInputService.InputBegan:Connect(function(input, g)
+    if g then return end
+    for _, macro in ipairs(Macros) do
+        if input.KeyCode == macro.keyEnum then
+            for i = 1, #macro.sequence do
+                local char = macro.sequence:sub(i,i)
+                local keyEnum = Enum.KeyCode[char]
+                if keyEnum then
+                    VirtualInputManager:SendKeyEvent(true, keyEnum, false, game)
+                    VirtualInputManager:SendKeyEvent(false, keyEnum, false, game)
+                end
+            end
+        end
+    end
+end)
+
+-- -------------------------
+-- Configs Dropdown
+-- -------------------------
+--[[ ConfigDropdown = Tab:CreateDropdown({
+    Name = "Macro Configs",
+    Options = {},
+    CurrentOption = {},
+    MultipleOptions = false,
+    Flag = "ConfigDropdown",
+    Callback = function(option)
+    local selected = option and option[1]
+    if selected and MacroConfigs[selected] then
+        local success, decoded = pcall(function()
+            return HttpService:JSONDecode(MacroConfigs[selected])
+        end)
+
+        if success and type(decoded) == "table" then
+            -- clear current macros instead of replacing table
+            table.clear(Macros)
+
+            for _, macro in ipairs(decoded) do
+                local keyStr = tostring(macro.key or ""):upper()
+
+                if NumberKeyMap[keyStr] then
+                    keyStr = NumberKeyMap[keyStr]
+                end
+
+                local keyEnum = Enum.KeyCode[keyStr]
+
+                table.insert(Macros, {
+                    key = keyStr,
+                    keyEnum = keyEnum,
+                    sequence = tostring(macro.sequence or ""):upper()
+                })
+            end
+
+            RefreshMacroDropdown()
+        else
+            warn("Failed to load config:", selected)
+        end
+    end
+    end,
+})
+
+ConfigInput = Tab:CreateInput({
+    Name = "Config Name",
+    CurrentValue = "",
+    PlaceholderText = "New config name...",
+    RemoveTextAfterFocusLost = false,
+    Flag = "ConfigInput",
+    Callback = function(text)
+        -- do nothing (prevents error)
+    end,
+})
+
+ConfigSaveButton = Tab:CreateButton({
+    Name = "Save Config",
+    Callback = function()
+        local name = tostring(ConfigInput.CurrentValue or "")
+        if name ~= "" then
+            -- encode macros
+            MacroConfigs[name] = HttpService:JSONEncode(Macros)
+            
+            -- store name in SavedConfigNames if not exists
+            if not table.find(SavedConfigNames, name) then
+                table.insert(SavedConfigNames, name)
+            end
+
+            -- refresh dropdown
+            task.wait()
+            ConfigDropdown:Refresh(SavedConfigNames)
+            print("Config saved:", name)
+        end
+    end,
+})
+
+-- Load Config Button
+ConfigLoadButton = Tab:CreateButton({
+    Name = "Load Config",
+    Callback = function()
+        local selected = ConfigDropdown.CurrentOption[1]
+        if selected and MacroConfigs[selected] then
+            local success, decoded = pcall(function()
+                return HttpService:JSONDecode(MacroConfigs[selected])
+            end)
+
+            if success and type(decoded) == "table" then
+                table.clear(Macros)
+
+                for _, macro in ipairs(decoded) do
+                    local keyStr = tostring(macro.key or ""):upper()
+                    if NumberKeyMap[keyStr] then
+                        keyStr = NumberKeyMap[keyStr]
+                    end
+                    local keyEnum = Enum.KeyCode[keyStr]
+
+                    table.insert(Macros, {
+                        key = keyStr,
+                        keyEnum = keyEnum,
+                        sequence = tostring(macro.sequence or ""):upper()
+                    })
+                end
+
+                RefreshMacroDropdown()
+                print("Config loaded:", selected)
+            else
+                warn("Failed to load config:", selected)
+            end
+        else
+            warn("No config selected to load")
+        end
+    end,
+	})
+--]]
+
+Rayfield:LoadConfiguration()
