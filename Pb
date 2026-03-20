@@ -52,6 +52,8 @@ local offDribbleDelay = 0.06 -- default
 local holdingDunk = false
 local startedDunk = false
 local dribbleHeldDunk = false
+local MobileShootButton = game:GetService("StarterGui").MobileControls.Offense.Shoot
+local MobileDunkButton = game:GetService("StarterGui").MobileControls.Offense.Dunk
 
 local bar = workspace:WaitForChild(plr.Name):WaitForChild("ShotMeterUI"):WaitForChild("NewMeter"):WaitForChild("Bar")
 plr.CharacterAdded:Connect(function()
@@ -161,21 +163,20 @@ local OffDribbleSlider = Tab:CreateSlider({
     end,
 })
 
+-- Desktop / Controller input
 user.InputBegan:Connect(function(i, g)
     if g or not enabled then return end
 
-    -- Shooting (E / X / Square)
-    if (i.KeyCode == Enum.KeyCode.E or
-        i.KeyCode == Enum.KeyCode.ButtonX) and not holding then
-        holding = true
-        started = false
-        dribbleHeld = isDribbling()
+    -- Shooting
+    if (i.KeyCode == Enum.KeyCode.E or i.KeyCode == Enum.KeyCode.ButtonX) and not holdingShoot then
+        holdingShoot = true
+        startedShoot = false
+        dribbleHeldShoot = isDribbling()
         vim:SendKeyEvent(true, Enum.KeyCode.E, false, game)
     end
 
-    -- Dunking (Space / Y / Triangle)
-    if (i.KeyCode == Enum.KeyCode.Space or
-        i.KeyCode == Enum.KeyCode.ButtonY) and not holdingDunk then
+    -- Dunking
+    if (i.KeyCode == Enum.KeyCode.Space or i.KeyCode == Enum.KeyCode.ButtonY) and not holdingDunk then
         holdingDunk = true
         startedDunk = false
         dribbleHeldDunk = isDribbling()
@@ -183,19 +184,42 @@ user.InputBegan:Connect(function(i, g)
     end
 end)
 
+-- Mobile input (add these lines)
+if MobileShootButton then
+    MobileShootButton.MouseButton1Down:Connect(function()
+        if not enabled then return end
+        holdingShoot = true
+        startedShoot = false
+        dribbleHeldShoot = isDribbling()
+    end)
+end
+
+if MobileDunkButton then
+    MobileDunkButton.MouseButton1Down:Connect(function()
+        if not enabled then return end
+        holdingDunk = true
+        startedDunk = false
+        dribbleHeldDunk = isDribbling()
+    end)
+end
+
 rs.Heartbeat:Connect(function()
     -- Shooting logic
-    if enabled and holding and not started then
+    if enabled and holdingShoot and not startedShoot then
         if bar.Visible and not isDribbling() then
-            started = true
-            local actualDelay = dribbleHeld and offDribbleDelay or delay
-            dribbleHeld = false
+            startedShoot = true
+            local actualDelay = dribbleHeldShoot and offDribbleDelay or delay
+            dribbleHeldShoot = false
 
             task.delay(actualDelay, function()
-                if holding then
-                    vim:SendKeyEvent(false, Enum.KeyCode.E, false, game)
-                    holding = false
-                    started = false
+                if holdingShoot then
+                    if MobileShootButton then
+                        MobileShootButton:ReleaseMouseButton1()
+                    else
+                        vim:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+                    end
+                    holdingShoot = false
+                    startedShoot = false
                 end
             end)
         end
@@ -205,12 +229,16 @@ rs.Heartbeat:Connect(function()
     if enabled and holdingDunk and not startedDunk then
         if bar.Visible and not isDribbling() then
             startedDunk = true
-            local actualDelay = dribbleHeldDunk and offdribbledelay2 or delay2
+            local actualDelay = dribbleHeldDunk and offDribbleDelay2 or delay2
             dribbleHeldDunk = false
 
             task.delay(actualDelay, function()
                 if holdingDunk then
-                    vim:SendKeyEvent(false, Enum.KeyCode.Space, false, game)
+                    if MobileDunkButton then
+                        MobileDunkButton:ReleaseMouseButton1()
+                    else
+                        vim:SendKeyEvent(false, Enum.KeyCode.Space, false, game)
+                    end
                     holdingDunk = false
                     startedDunk = false
                 end
