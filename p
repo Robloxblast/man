@@ -89,7 +89,7 @@ local gam = "Dragon Ball Incremental"
 local Dropdown = Tab:CreateDropdown({
    Name = "Choose what script to execute",
    Options = {"Dragon Ball Incremental", "Sorcerer Incremental", "Steal Time", "Highschool Hoops", "Arcade Basketball", "Playground Basketball", "Fisch", 
-   "Elite Basketball"},
+   "Elite Basketball", "NBA Champions Basketball"},
    CurrentOption = {"Dragon Ball Incremental"},
    MultipleOptions = false,
    Flag = "Dropdown1",
@@ -117,6 +117,8 @@ local Button = Tab:CreateButton({
          loadstring(game:HttpGet("https://raw.githubusercontent.com/Robloxblast/man/refs/heads/main/fisch"))()
          elseif gam == "Elite Basketball" then
          loadstring(game:HttpGet("https://raw.githubusercontent.com/Robloxblast/man/refs/heads/main/Eb"))()
+         elseif gam == "NBA Champions Basketball" then
+         loadstring(game:HttpGet("https://raw.githubusercontent.com/Robloxblast/man/refs/heads/main/NBA"))()
       end
    end,
 })
