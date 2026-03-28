@@ -1,0 +1,268 @@
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+local Window = Rayfield:CreateWindow({
+   Name = "NBA Champions Basketball",
+   Icon = 0, -- Icon in Topbar. Can use Lucide Icons (string) or Roblox Image (number). 0 to use no icon (default).
+   LoadingTitle = "Loading Script Please Wait...",
+   LoadingSubtitle = "by Xarxynth Hub",
+   ShowText = "Rayfield", -- for mobile users to unhide Rayfield, change if you'd like
+   Theme = "Default", -- Check https://docs.sirius.menu/rayfield/configuration/themes
+
+   ToggleUIKeybind = "N", -- The keybind to toggle the UI visibility (string like "K" or Enum.KeyCode)
+
+   DisableRayfieldPrompts = false,
+   DisableBuildWarnings = false, -- Prevents Rayfield from emitting warnings when the script has a version mismatch with the interface.
+
+   ConfigurationSaving = {
+      Enabled = true,
+      FolderName = nil, -- Create a custom folder for your hub/game
+      FileName = "Big Hub"
+   },
+
+   Discord = {
+      Enabled = false, -- Prompt the user to join your Discord server if their executor supports it
+      Invite = "noinvitelink", -- The Discord invite code, do not include Discord.gg/. E.g. Discord.gg/ ABCD would be ABCD
+      RememberJoins = true -- Set this to false to make them join the Discord every time they load it up
+   },
+
+   KeySystem = false, -- Set this to true to use our key system
+   KeySettings = {
+      Title = "Untitled",
+      Subtitle = "Key System",
+      Note = "No method of obtaining the key is provided", -- Use this to tell the user how to get a key
+      FileName = "Key", -- It is recommended to use something unique, as other scripts using Rayfield may overwrite your key file
+      SaveKey = true, -- The user's key will be saved, but if you change the key, they will be unable to use your script
+      GrabKeyFromSite = false, -- If this is true, set Key below to the RAW site you would like Rayfield to get the key from
+      Key = {"Hello"} -- List of keys that the system will accept, can be RAW file links (pastebin, github, etc.) or simple strings ("hello", "key22")
+   }
+})
+
+local Tab = Window:CreateTab("Main", "rewind")
+
+local ToggleEnabled = false
+
+local Toggle = Tab:CreateToggle({
+    Name = "Auto Green",
+    CurrentValue = false,
+    Flag = "Toggle1",
+    Callback = function(Value)
+        ToggleEnabled = Value
+    end,
+})
+
+local old
+old = hookmetamethod(game, "__namecall", function(self, ...)
+    local args = {...}
+    local method = getnamecallmethod()
+
+    if ToggleEnabled and method == "FireServer" and self.Name == "FinishShot" then
+        args[2] = 1.0062925350091974
+        return old(self, unpack(args))
+    end
+
+    return old(self, ...)
+end)
+
+local p = game:GetService("Players").LocalPlayer
+local c = p.Character or p.CharacterAdded:Wait()
+local hrp = c:WaitForChild("HumanoidRootPart")
+local vals = p:WaitForChild("Values")
+local dribble = vals:WaitForChild("Dribbling") -- BoolValue
+
+local enabled = false
+local glideSpeed = 10 -- initial value
+
+local Toggle = Tab:CreateToggle({
+    Name = "Dribble Glide",
+    CurrentValue = false,
+    Flag = "DribbleGlide",
+    Callback = function(v)
+        enabled = v
+    end,
+})
+
+local Slider = Tab:CreateSlider({
+    Name = "Glide Speed",
+    Range = {1, 100}, -- max 100
+    Increment = 1,
+    Suffix = "",
+    CurrentValue = glideSpeed,
+    Flag = "GlideSpeed",
+    Callback = function(v)
+        glideSpeed = v
+    end,
+})
+
+game:GetService("RunService").Heartbeat:Connect(function(delta)
+    if enabled and dribble.Value then
+        local bv = hrp:FindFirstChild("BodyVelocity")
+        if bv then
+            local vel = bv.Velocity
+            local targetVel = Vector3.new(
+                vel.X ~= 0 and (vel.X > 0 and glideSpeed or -glideSpeed) or 0,
+                vel.Y,
+                vel.Z ~= 0 and (vel.Z > 0 and glideSpeed or -glideSpeed) or 0
+            )
+            bv.Velocity = vel:Lerp(targetVel, 0.1 * delta * 60)
+        end
+    end
+end)
+
+local p = game:GetService("Players").LocalPlayer
+local c = p.Character or p.CharacterAdded:Wait()
+local hrp = c:WaitForChild("HumanoidRootPart")
+local h = c:WaitForChild("Humanoid")
+
+local players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local VirtualInput = game:GetService("VirtualInputManager")
+
+local autoBlockEnabled = false
+local autoBlockMaxStuds = 20
+local teamCheckEnabled = false
+
+local animId = "rbxassetid://116040750851551"
+
+local BlockToggle = Tab:CreateToggle({
+    Name = "Auto Block",
+    CurrentValue = false,
+    Flag = "AutoBlock",
+    Callback = function(v)
+        autoBlockEnabled = v
+    end,
+})
+
+local BlockSlider = Tab:CreateSlider({
+    Name = "Block Max Distance",
+    Range = {1, 50},
+    Increment = 1,
+    Suffix = " studs",
+    CurrentValue = autoBlockMaxStuds,
+    Flag = "BlockDistance",
+    Callback = function(v)
+        autoBlockMaxStuds = v
+    end,
+})
+
+local TeamToggle = Tab:CreateToggle({
+    Name = "Team Check",
+    CurrentValue = false,
+    Flag = "TeamCheck",
+    Callback = function(v)
+        teamCheckEnabled = v
+    end,
+})
+
+local function isPlayingShotAnim(plr)
+    local char = plr.Character
+    if not char then return false end
+
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if not hum then return false end
+
+    local animator = hum:FindFirstChildOfClass("Animator")
+    if not animator then return false end
+
+    for _, track in pairs(animator:GetPlayingAnimationTracks()) do
+        if track.Animation and track.Animation.AnimationId == animId then
+            return true
+        end
+    end
+
+    return false
+end
+
+RunService.Heartbeat:Connect(function()
+    if not autoBlockEnabled then return end
+
+    local closestPlayer = nil
+    local closestDistance = math.huge
+
+    for _, plr in pairs(players:GetPlayers()) do
+        if plr ~= p and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+            if teamCheckEnabled and plr.Team == p.Team then
+                continue
+            end
+
+            if isPlayingShotAnim(plr) then
+                local dist = (hrp.Position - plr.Character.HumanoidRootPart.Position).Magnitude
+                if dist < closestDistance and dist <= autoBlockMaxStuds then
+                    closestDistance = dist
+                    closestPlayer = plr
+                end
+            end
+        end
+    end
+
+    if closestPlayer then
+        VirtualInput:SendKeyEvent(true, Enum.KeyCode.Space, false, game)
+        task.wait(0.05)
+        VirtualInput:SendKeyEvent(false, Enum.KeyCode.Space, false, game)
+    end
+end)
+
+local Paragraph = Tab:CreateParagraph({Title = "Anti Steal INFO", Content = "What Anti Steal does is it will auto dribble if someone tries to steal from you"})
+
+local p = game:GetService("Players").LocalPlayer
+local c = p.Character or p.CharacterAdded:Wait()
+local hrp = c:WaitForChild("HumanoidRootPart")
+local players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local VirtualInput = game:GetService("VirtualInputManager")
+
+local antiStealEnabled = false
+local antiStealMaxStuds = 15
+local antiStealCooldown = 0.5
+local lastTrigger = 0
+
+local StealToggle = Tab:CreateToggle({
+    Name = "Anti Steal",
+    CurrentValue = false,
+    Flag = "AntiSteal",
+    Callback = function(v)
+        antiStealEnabled = v
+    end,
+})
+
+local StealSlider = Tab:CreateSlider({
+    Name = "Steal Max Distance",
+    Range = {1, 30},
+    Increment = 1,
+    Suffix = "studs",
+    CurrentValue = antiStealMaxStuds,
+    Flag = "StealDistance",
+    Callback = function(v)
+        antiStealMaxStuds = v
+    end,
+})
+
+RunService.Heartbeat:Connect(function()
+    if not antiStealEnabled then return end
+    if tick() - lastTrigger < antiStealCooldown then return end
+
+    local closestPlayer = nil
+    local closestDistance = math.huge
+
+    for _, plr in pairs(players:GetPlayers()) do
+        if plr ~= p and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+            local steal = plr:FindFirstChild("Values") and plr.Values:FindFirstChild("Stealing")
+            if steal and steal.Value then
+                local dist = (hrp.Position - plr.Character.HumanoidRootPart.Position).Magnitude
+                if dist < closestDistance and dist <= antiStealMaxStuds then
+                    closestDistance = dist
+                    closestPlayer = plr
+                end
+            end
+        end
+    end
+
+    if closestPlayer then
+        lastTrigger = tick()
+        for i = 1, 2 do
+            VirtualInput:SendMouseButtonEvent(0, 0, 1, true, game, 0)
+            task.wait(0.05)
+            VirtualInput:SendMouseButtonEvent(0, 0, 1, false, game, 0)
+        end
+    end
+end)
+
+Rayfield:LoadConfiguration()
