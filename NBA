@@ -65,51 +65,6 @@ end)
 local p = game:GetService("Players").LocalPlayer
 local c = p.Character or p.CharacterAdded:Wait()
 local hrp = c:WaitForChild("HumanoidRootPart")
-local vals = p:WaitForChild("Values")
-local dribble = vals:WaitForChild("Dribbling") -- BoolValue
-
-local enabled = false
-local glideSpeed = 10 -- initial value
-
-local Toggle = Tab:CreateToggle({
-    Name = "Dribble Glide",
-    CurrentValue = false,
-    Flag = "DribbleGlide",
-    Callback = function(v)
-        enabled = v
-    end,
-})
-
-local Slider = Tab:CreateSlider({
-    Name = "Glide Speed",
-    Range = {1, 100}, -- max 100
-    Increment = 1,
-    Suffix = "",
-    CurrentValue = glideSpeed,
-    Flag = "GlideSpeed",
-    Callback = function(v)
-        glideSpeed = v
-    end,
-})
-
-game:GetService("RunService").Heartbeat:Connect(function(delta)
-    if enabled and dribble.Value then
-        local bv = hrp:FindFirstChild("BodyVelocity")
-        if bv then
-            local vel = bv.Velocity
-            local targetVel = Vector3.new(
-                vel.X ~= 0 and (vel.X > 0 and glideSpeed or -glideSpeed) or 0,
-                vel.Y,
-                vel.Z ~= 0 and (vel.Z > 0 and glideSpeed or -glideSpeed) or 0
-            )
-            bv.Velocity = vel:Lerp(targetVel, 0.1 * delta * 60)
-        end
-    end
-end)
-
-local p = game:GetService("Players").LocalPlayer
-local c = p.Character or p.CharacterAdded:Wait()
-local hrp = c:WaitForChild("HumanoidRootPart")
 local h = c:WaitForChild("Humanoid")
 
 local players = game:GetService("Players")
