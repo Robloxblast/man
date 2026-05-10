@@ -223,15 +223,21 @@ local p = game:GetService("Players").LocalPlayer
 local c = p.Character or p.CharacterAdded:Wait()
 local hrp = c:WaitForChild("HumanoidRootPart")
 
-local enabled = false
-local glideSpeed = 10 -- initial value
+-- Keep refs fresh on respawn
+p.CharacterAdded:Connect(function(newChar)
+    c = newChar
+    hrp = newChar:WaitForChild("HumanoidRootPart")
+end)
+
+local glideEnabled = false
+local glideSpeed   = 10
 
 local Toggle = Tab:CreateToggle({
     Name = "Dribble Glide",
     CurrentValue = false,
     Flag = "DribbleGlide",
     Callback = function(v)
-        enabled = v
+        glideEnabled = v
     end,
 })
 
@@ -247,16 +253,19 @@ local Slider = Tab:CreateSlider({
     end,
 })
 
-local function isDribbling()
-    local hum = c:FindFirstChildOfClass("Humanoid")
-    if not hum then return false end
-    local animator = hum:FindFirstChildOfClass("Animator")
+local function isGlideDribbling()
+    local character = p.Character
+    if not character then return false end
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    if not humanoid then return false end
+    local animator = humanoid:FindFirstChildOfClass("Animator")
     if not animator then return false end
-
     for _, track in pairs(animator:GetPlayingAnimationTracks()) do
-        for _, id in pairs(dribbleAnims) do
-            if track.Animation.AnimationId == id then
-                return true
+        if track.Animation then
+            for _, id in ipairs(dribbleAnims) do
+                if track.Animation.AnimationId == id then
+                    return true
+                end
             end
         end
     end
@@ -264,16 +273,27 @@ local function isDribbling()
 end
 
 game:GetService("RunService").Heartbeat:Connect(function(delta)
-    if enabled and isDribbling() then
-        local bv = hrp:FindFirstChild("BodyVelocity")
-        if bv then
-            local vel = bv.Velocity
-            local targetVel = Vector3.new(
-                vel.X ~= 0 and (vel.X > 0 and glideSpeed or -glideSpeed) or 0,
-                vel.Y,
-                vel.Z ~= 0 and (vel.Z > 0 and glideSpeed or -glideSpeed) or 0
-            )
-            bv.Velocity = vel:Lerp(targetVel, 0.1 * delta * 60)
+    if not glideEnabled then return end
+    if not isGlideDribbling() then return end
+
+    local character = p.Character
+    if not character then return end
+
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    if not humanoid or humanoid.Health <= 0 then return end
+
+    local hrpPart = character:FindFirstChild("HumanoidRootPart")
+    if not hrpPart then return end
+
+    local moveDir = humanoid.MoveDirection
+
+    if moveDir.Magnitude > 0 then
+        character:TranslateBy(moveDir * glideSpeed * delta * 10)
+    else
+        local vel     = hrpPart.Velocity
+        local flatVel = Vector3.new(vel.X, 0, vel.Z)
+        if flatVel.Magnitude > 0.5 then
+            character:TranslateBy(flatVel.Unit * glideSpeed * delta * 10)
         end
     end
 end)
