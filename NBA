@@ -1,83 +1,247 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 local Window = Rayfield:CreateWindow({
    Name = "NBA Champions Basketball",
-   Icon = 0, -- Icon in Topbar. Can use Lucide Icons (string) or Roblox Image (number). 0 to use no icon (default).
+   Icon = 0,
    LoadingTitle = "Loading Script Please Wait...",
    LoadingSubtitle = "by Xarxynth Hub",
-   ShowText = "Rayfield", -- for mobile users to unhide Rayfield, change if you'd like
-   Theme = "Default", -- Check https://docs.sirius.menu/rayfield/configuration/themes
+   ShowText = "Rayfield",
+   Theme = "Default",
 
-   ToggleUIKeybind = "N", -- The keybind to toggle the UI visibility (string like "K" or Enum.KeyCode)
+   ToggleUIKeybind = "N",
 
    DisableRayfieldPrompts = false,
-   DisableBuildWarnings = false, -- Prevents Rayfield from emitting warnings when the script has a version mismatch with the interface.
+   DisableBuildWarnings = false,
 
    ConfigurationSaving = {
       Enabled = true,
-      FolderName = nil, -- Create a custom folder for your hub/game
+      FolderName = nil,
       FileName = "Big Hub"
    },
 
    Discord = {
-      Enabled = false, -- Prompt the user to join your Discord server if their executor supports it
-      Invite = "noinvitelink", -- The Discord invite code, do not include Discord.gg/. E.g. Discord.gg/ ABCD would be ABCD
-      RememberJoins = true -- Set this to false to make them join the Discord every time they load it up
+      Enabled = false,
+      Invite = "noinvitelink",
+      RememberJoins = true
    },
 
-   KeySystem = false, -- Set this to true to use our key system
+   KeySystem = false,
    KeySettings = {
       Title = "Untitled",
       Subtitle = "Key System",
-      Note = "No method of obtaining the key is provided", -- Use this to tell the user how to get a key
-      FileName = "Key", -- It is recommended to use something unique, as other scripts using Rayfield may overwrite your key file
-      SaveKey = true, -- The user's key will be saved, but if you change the key, they will be unable to use your script
-      GrabKeyFromSite = false, -- If this is true, set Key below to the RAW site you would like Rayfield to get the key from
-      Key = {"Hello"} -- List of keys that the system will accept, can be RAW file links (pastebin, github, etc.) or simple strings ("hello", "key22")
+      Note = "No method of obtaining the key is provided",
+      FileName = "Key",
+      SaveKey = true,
+      GrabKeyFromSite = false,
+      Key = {"Hello"}
    }
 })
 
-local Tab = Window:CreateTab("Main", "rewind")
+-- =============================================
+-- SERVICES
+-- =============================================
 
-local ToggleEnabled = false
+local Players      = game:GetService("Players")
+local RunService   = game:GetService("RunService")
+local VirtualInput = game:GetService("VirtualInputManager")
+local TweenService = game:GetService("TweenService")
+local Workspace    = game:GetService("Workspace")
 
-local Toggle = Tab:CreateToggle({
-    Name = "Auto Green",
+local localPlayer = Players.LocalPlayer
+
+-- =============================================
+-- TABS
+-- =============================================
+
+local Tab     = Window:CreateTab("Main", "rewind")
+local MiscTab = Window:CreateTab("Misc", "zap")
+
+-- =============================================
+-- AUTO GREEN
+-- =============================================
+
+local hookSupported = typeof(hookmetamethod) == "function"
+
+if not hookSupported then
+    Rayfield:Notify({
+        Title = "Auto Green Unavailable",
+        Content = "Your executor doesn't support hookmetamethod so Auto Green has been hidden. All other features work normally.",
+        Duration = 8,
+        Image = 4483362458,
+    })
+    Rayfield:Notify({
+        Title = "Info",
+        Content = "Please wait for a few seconds other features will be loaded",
+        Duration = 8,
+        Image = 4483362458,
+    })
+else
+    local ToggleEnabled = false
+
+    Tab:CreateToggle({
+        Name = "Auto Green",
+        CurrentValue = false,
+        Flag = "Toggle1",
+        Callback = function(Value)
+            ToggleEnabled = Value
+        end,
+    })
+
+    local old
+    old = hookmetamethod(game, "__namecall", function(self, ...)
+        local args = {...}
+        local method = getnamecallmethod()
+        if ToggleEnabled and method == "FireServer" and self.Name == "FinishShot" then
+            args[2] = 1.0062925350091974
+            return old(self, unpack(args))
+        end
+        return old(self, ...)
+    end)
+end
+
+-- =============================================
+-- SHARED CHARACTER REFS
+-- =============================================
+
+local char = localPlayer.Character or localPlayer.CharacterAdded:Wait()
+local hrp  = char:WaitForChild("HumanoidRootPart")
+
+localPlayer.CharacterAdded:Connect(function(newChar)
+    char = newChar
+    hrp  = newChar:WaitForChild("HumanoidRootPart")
+end)
+
+-- =============================================
+-- DRIBBLE ANIM IDS
+-- =============================================
+
+local DRIBBLE_ANIM_IDS = {
+    ["rbxassetid://89982382451080"]  = true,
+    ["rbxassetid://112831021247177"] = true,
+    ["rbxassetid://104284723716243"] = true,
+    ["rbxassetid://127664418912221"] = true,
+    ["rbxassetid://123291513468399"] = true,
+    ["rbxassetid://86238603494813"]  = true,
+    ["rbxassetid://74023685058580"]  = true,
+    ["rbxassetid://115252576680829"] = true,
+    ["rbxassetid://98828571679110"]  = true,
+    ["rbxassetid://73686745110921"]  = true,
+    ["rbxassetid://105297814068678"] = true,
+    ["rbxassetid://114144964927357"] = true,
+    ["rbxassetid://87657838241280"]  = true,
+    ["rbxassetid://71799893138326"]  = true,
+    ["rbxassetid://133462938171264"] = true,
+    ["rbxassetid://102157997741896"] = true,
+}
+
+local function isLocalPlayerDribbling()
+    local c = localPlayer.Character
+    if not c then return false end
+    local hum = c:FindFirstChildOfClass("Humanoid")
+    if not hum then return false end
+    local animator = hum:FindFirstChildOfClass("Animator")
+    if not animator then return false end
+    for _, track in pairs(animator:GetPlayingAnimationTracks()) do
+        if track.Animation and DRIBBLE_ANIM_IDS[track.Animation.AnimationId] then
+            return true
+        end
+    end
+    return false
+end
+
+-- =============================================
+-- SHOT ANIM IDS (AUTO BLOCK)
+-- =============================================
+
+local SHOT_ANIM_IDS = {
+    ["rbxassetid://116040750851551"] = true,
+    ["rbxassetid://107107939533181"] = true,
+    ["rbxassetid://131853159623071"] = true,
+    ["rbxassetid://82122041589364"]  = true,
+    ["rbxassetid://111416559586650"] = true,
+    ["rbxassetid://134853370763630"] = true,
+    ["rbxassetid://115285702899116"] = true,
+    ["rbxassetid://97058716496583"]  = true,
+    ["rbxassetid://92811086691995"]  = true,
+}
+
+local function isPlayingShotAnim(plr)
+    local c = plr.Character
+    if not c then return false end
+    local hum = c:FindFirstChildOfClass("Humanoid")
+    if not hum then return false end
+    local animator = hum:FindFirstChildOfClass("Animator")
+    if not animator then return false end
+    for _, track in pairs(animator:GetPlayingAnimationTracks()) do
+        if track.Animation and SHOT_ANIM_IDS[track.Animation.AnimationId] then
+            return true
+        end
+    end
+    return false
+end
+
+-- =============================================
+-- DRIBBLE GLIDE
+-- =============================================
+
+local glideEnabled = false
+local glideSpeed   = 10
+
+Tab:CreateToggle({
+    Name = "Dribble Glide",
     CurrentValue = false,
-    Flag = "Toggle1",
-    Callback = function(Value)
-        ToggleEnabled = Value
+    Flag = "DribbleGlide",
+    Callback = function(v)
+        glideEnabled = v
     end,
 })
 
-local old
-old = hookmetamethod(game, "__namecall", function(self, ...)
-    local args = {...}
-    local method = getnamecallmethod()
+Tab:CreateSlider({
+    Name = "Glide Speed",
+    Range = {1, 100},
+    Increment = 1,
+    Suffix = "",
+    CurrentValue = glideSpeed,
+    Flag = "GlideSpeed",
+    Callback = function(v)
+        glideSpeed = v
+    end,
+})
 
-    if ToggleEnabled and method == "FireServer" and self.Name == "FinishShot" then
-        args[2] = 1.0062925350091974
-        return old(self, unpack(args))
+RunService.Heartbeat:Connect(function(delta)
+    if not glideEnabled then return end
+    if not isLocalPlayerDribbling() then return end
+
+    local c = localPlayer.Character
+    if not c then return end
+
+    local hum = c:FindFirstChildOfClass("Humanoid")
+    if not hum or hum.Health <= 0 then return end
+
+    local hrpPart = c:FindFirstChild("HumanoidRootPart")
+    if not hrpPart then return end
+
+    local moveDir = hum.MoveDirection
+
+    if moveDir.Magnitude > 0 then
+        c:TranslateBy(moveDir * glideSpeed * delta * 10)
+    else
+        local vel     = hrpPart.Velocity
+        local flatVel = Vector3.new(vel.X, 0, vel.Z)
+        if flatVel.Magnitude > 0.5 then
+            c:TranslateBy(flatVel.Unit * glideSpeed * delta * 10)
+        end
     end
-
-    return old(self, ...)
 end)
 
-local p = game:GetService("Players").LocalPlayer
-local c = p.Character or p.CharacterAdded:Wait()
-local hrp = c:WaitForChild("HumanoidRootPart")
-local h = c:WaitForChild("Humanoid")
+-- =============================================
+-- AUTO BLOCK
+-- =============================================
 
-local players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local VirtualInput = game:GetService("VirtualInputManager")
-
-local autoBlockEnabled = false
+local autoBlockEnabled  = false
 local autoBlockMaxStuds = 20
-local teamCheckEnabled = false
+local teamCheckEnabled  = false
 
-local animId = "rbxassetid://116040750851551"
-
-local BlockToggle = Tab:CreateToggle({
+Tab:CreateToggle({
     Name = "Auto Block",
     CurrentValue = false,
     Flag = "AutoBlock",
@@ -86,7 +250,7 @@ local BlockToggle = Tab:CreateToggle({
     end,
 })
 
-local BlockSlider = Tab:CreateSlider({
+Tab:CreateSlider({
     Name = "Block Max Distance",
     Range = {1, 50},
     Increment = 1,
@@ -98,7 +262,7 @@ local BlockSlider = Tab:CreateSlider({
     end,
 })
 
-local TeamToggle = Tab:CreateToggle({
+Tab:CreateToggle({
     Name = "Team Check",
     CurrentValue = false,
     Flag = "TeamCheck",
@@ -107,42 +271,21 @@ local TeamToggle = Tab:CreateToggle({
     end,
 })
 
-local function isPlayingShotAnim(plr)
-    local char = plr.Character
-    if not char then return false end
-
-    local hum = char:FindFirstChildOfClass("Humanoid")
-    if not hum then return false end
-
-    local animator = hum:FindFirstChildOfClass("Animator")
-    if not animator then return false end
-
-    for _, track in pairs(animator:GetPlayingAnimationTracks()) do
-        if track.Animation and track.Animation.AnimationId == animId then
-            return true
-        end
-    end
-
-    return false
-end
-
 RunService.Heartbeat:Connect(function()
     if not autoBlockEnabled then return end
 
-    local closestPlayer = nil
+    local myHRP           = hrp
+    local closestPlayer   = nil
     local closestDistance = math.huge
 
-    for _, plr in pairs(players:GetPlayers()) do
-        if plr ~= p and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-            if teamCheckEnabled and plr.Team == p.Team then
-                continue
-            end
-
+    for _, plr in pairs(Players:GetPlayers()) do
+        if plr ~= localPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+            if teamCheckEnabled and plr.Team == localPlayer.Team then continue end
             if isPlayingShotAnim(plr) then
-                local dist = (hrp.Position - plr.Character.HumanoidRootPart.Position).Magnitude
+                local dist = (myHRP.Position - plr.Character.HumanoidRootPart.Position).Magnitude
                 if dist < closestDistance and dist <= autoBlockMaxStuds then
                     closestDistance = dist
-                    closestPlayer = plr
+                    closestPlayer   = plr
                 end
             end
         end
@@ -155,21 +298,21 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
-local Paragraph = Tab:CreateParagraph({Title = "Anti Steal INFO", Content = "What Anti Steal does is it will auto dribble if someone tries to steal from you"})
+-- =============================================
+-- ANTI STEAL
+-- =============================================
 
-local p = game:GetService("Players").LocalPlayer
-local c = p.Character or p.CharacterAdded:Wait()
-local hrp = c:WaitForChild("HumanoidRootPart")
-local players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local VirtualInput = game:GetService("VirtualInputManager")
+Tab:CreateParagraph({
+    Title = "Anti Steal INFO",
+    Content = "Auto-dribbles when a nearby opponent has their Stealing value active."
+})
 
-local antiStealEnabled = false
+local antiStealEnabled  = false
 local antiStealMaxStuds = 15
 local antiStealCooldown = 0.5
-local lastTrigger = 0
+local lastTrigger       = 0
 
-local StealToggle = Tab:CreateToggle({
+Tab:CreateToggle({
     Name = "Anti Steal",
     CurrentValue = false,
     Flag = "AntiSteal",
@@ -178,11 +321,11 @@ local StealToggle = Tab:CreateToggle({
     end,
 })
 
-local StealSlider = Tab:CreateSlider({
+Tab:CreateSlider({
     Name = "Steal Max Distance",
     Range = {1, 30},
     Increment = 1,
-    Suffix = "studs",
+    Suffix = " studs",
     CurrentValue = antiStealMaxStuds,
     Flag = "StealDistance",
     Callback = function(v)
@@ -194,17 +337,18 @@ RunService.Heartbeat:Connect(function()
     if not antiStealEnabled then return end
     if tick() - lastTrigger < antiStealCooldown then return end
 
-    local closestPlayer = nil
+    local myHRP           = hrp
+    local closestPlayer   = nil
     local closestDistance = math.huge
 
-    for _, plr in pairs(players:GetPlayers()) do
-        if plr ~= p and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+    for _, plr in pairs(Players:GetPlayers()) do
+        if plr ~= localPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
             local steal = plr:FindFirstChild("Values") and plr.Values:FindFirstChild("Stealing")
             if steal and steal.Value then
-                local dist = (hrp.Position - plr.Character.HumanoidRootPart.Position).Magnitude
+                local dist = (myHRP.Position - plr.Character.HumanoidRootPart.Position).Magnitude
                 if dist < closestDistance and dist <= antiStealMaxStuds then
                     closestDistance = dist
-                    closestPlayer = plr
+                    closestPlayer   = plr
                 end
             end
         end
@@ -218,6 +362,278 @@ RunService.Heartbeat:Connect(function()
             VirtualInput:SendMouseButtonEvent(0, 0, 1, false, game, 0)
         end
     end
+end)
+
+-- =============================================
+-- AUTO GUARD
+-- Nearest opponent, cycle with button.
+-- WalkSpeed locked to 17.5 while active.
+-- Front offset updates in real time.
+-- =============================================
+
+Tab:CreateParagraph({
+    Title = "Auto Guard INFO",
+    Content = "Follows nearest opponent. Use Next Guard Target to cycle. WalkSpeed locked to 17.5 while active."
+})
+
+local autoGuardEnabled     = false
+local autoGuardMaxStuds    = 20
+local autoGuardFrontOffset = 3
+local autoGuardMode        = "Move:To"
+local autoGuardTeamCheck   = false
+local guardTarget          = nil
+local guardSkipList        = {}
+
+Tab:CreateToggle({
+    Name = "Auto Guard",
+    CurrentValue = false,
+    Flag = "AutoGuard",
+    Callback = function(v)
+        autoGuardEnabled = v
+        if not v then
+            VirtualInput:SendKeyEvent(false, Enum.KeyCode.F, false, game)
+            guardTarget   = nil
+            guardSkipList = {}
+            -- Restore walkspeed when disabled
+            local c = localPlayer.Character
+            if c then
+                local hum = c:FindFirstChildOfClass("Humanoid")
+                if hum then hum.WalkSpeed = 17.5 end
+            end
+        end
+    end,
+})
+
+Tab:CreateToggle({
+    Name = "Auto Guard Team Check",
+    CurrentValue = false,
+    Flag = "AutoGuardTeamCheck",
+    Callback = function(v)
+        autoGuardTeamCheck = v
+    end,
+})
+
+Tab:CreateSlider({
+    Name = "Guard Max Distance",
+    Range = {1, 100},
+    Increment = 1,
+    Suffix = " studs",
+    CurrentValue = autoGuardMaxStuds,
+    Flag = "GuardMaxStuds",
+    Callback = function(v)
+        autoGuardMaxStuds = v
+    end,
+})
+
+Tab:CreateSlider({
+    Name = "Guard Front Offset",
+    Range = {1, 15},
+    Increment = 1,
+    Suffix = " studs",
+    CurrentValue = autoGuardFrontOffset,
+    Flag = "GuardFrontOffset",
+    Callback = function(v)
+        autoGuardFrontOffset = v
+    end,
+})
+
+Tab:CreateDropdown({
+    Name = "Guard Movement Mode",
+    Options = {"Move:To", "CFrame", "Tween"},
+    CurrentOption = {"Move:To"},
+    MultipleOptions = false,
+    Flag = "GuardMoveMode",
+    Callback = function(options)
+        autoGuardMode = options[1]
+    end,
+})
+
+local function getSortedOpponents()
+    local myChar = localPlayer.Character
+    if not myChar then return {} end
+    local myHRP = myChar:FindFirstChild("HumanoidRootPart")
+    if not myHRP then return {} end
+
+    local list = {}
+    for _, plr in pairs(Players:GetPlayers()) do
+        if plr == localPlayer then continue end
+        if not plr.Character then continue end
+        if autoGuardTeamCheck and plr.Team == localPlayer.Team then continue end
+
+        local plrHRP = plr.Character:FindFirstChild("HumanoidRootPart")
+        if not plrHRP then continue end
+
+        local dist = (myHRP.Position - plrHRP.Position).Magnitude
+        if dist <= autoGuardMaxStuds then
+            table.insert(list, {player = plr, dist = dist})
+        end
+    end
+
+    table.sort(list, function(a, b) return a.dist < b.dist end)
+    return list
+end
+
+local function pickGuardTarget()
+    local sorted = getSortedOpponents()
+    for _, entry in ipairs(sorted) do
+        if not guardSkipList[entry.player] then
+            return entry.player
+        end
+    end
+    guardSkipList = {}
+    if sorted[1] then return sorted[1].player end
+    return nil
+end
+
+Tab:CreateButton({
+    Name = "Next Guard Target",
+    Callback = function()
+        if not autoGuardEnabled then return end
+        if guardTarget then
+            guardSkipList[guardTarget] = true
+        end
+        local newTarget = pickGuardTarget()
+        if newTarget then
+            local myChar = localPlayer.Character
+            local myHRP  = myChar and myChar:FindFirstChild("HumanoidRootPart")
+            local tHRP   = newTarget.Character and newTarget.Character:FindFirstChild("HumanoidRootPart")
+            if myHRP and tHRP then
+                local dist = (myHRP.Position - tHRP.Position).Magnitude
+                if dist <= autoGuardMaxStuds then
+                    guardTarget = newTarget
+                    Rayfield:Notify({
+                        Title = "Auto Guard",
+                        Content = "Switched target to: " .. newTarget.Name,
+                        Duration = 3,
+                        Image = 4483362458,
+                    })
+                else
+                    Rayfield:Notify({
+                        Title = "Auto Guard",
+                        Content = "Next player is out of range.",
+                        Duration = 3,
+                        Image = 4483362458,
+                    })
+                end
+            end
+        else
+            Rayfield:Notify({
+                Title = "Auto Guard",
+                Content = "No other targets in range.",
+                Duration = 3,
+                Image = 4483362458,
+            })
+        end
+    end,
+})
+
+RunService.Heartbeat:Connect(function()
+    if not autoGuardEnabled then return end
+
+    local c = localPlayer.Character
+    if not c then return end
+
+    local myHRP = c:FindFirstChild("HumanoidRootPart")
+    local hum   = c:FindFirstChildOfClass("Humanoid")
+    if not myHRP or not hum or hum.Health <= 0 then return end
+
+    -- Lock WalkSpeed every frame so game can't reset it
+    hum.WalkSpeed = 17.5
+
+    -- Auto-pick target if none or target gone
+    if not guardTarget
+        or not guardTarget.Character
+        or not guardTarget.Character:FindFirstChild("HumanoidRootPart") then
+        guardTarget = pickGuardTarget()
+    end
+
+    if not guardTarget or not guardTarget.Character then
+        VirtualInput:SendKeyEvent(false, Enum.KeyCode.F, false, game)
+        return
+    end
+
+    local targetHRP = guardTarget.Character:FindFirstChild("HumanoidRootPart")
+    if not targetHRP then
+        VirtualInput:SendKeyEvent(false, Enum.KeyCode.F, false, game)
+        return
+    end
+
+    local dist = (myHRP.Position - targetHRP.Position).Magnitude
+    if dist > autoGuardMaxStuds then
+        VirtualInput:SendKeyEvent(false, Enum.KeyCode.F, false, game)
+        return
+    end
+
+    -- Hold F to contest
+    VirtualInput:SendKeyEvent(true, Enum.KeyCode.F, false, game)
+
+    -- Read autoGuardFrontOffset directly every frame — real time, no toggle needed
+    local targetLook = targetHRP.CFrame.LookVector
+    local contestPos = Vector3.new(
+        targetHRP.Position.X + targetLook.X * autoGuardFrontOffset,
+        targetHRP.Position.Y,
+        targetHRP.Position.Z + targetLook.Z * autoGuardFrontOffset
+    )
+
+    if autoGuardMode == "Move:To" then
+        hum:MoveTo(contestPos)
+
+    elseif autoGuardMode == "CFrame" then
+        myHRP.CFrame = CFrame.new(contestPos, targetHRP.Position)
+
+    elseif autoGuardMode == "Tween" then
+        local goal = { CFrame = CFrame.new(contestPos, targetHRP.Position) }
+        local info = TweenInfo.new(0.1, Enum.EasingStyle.Linear)
+        TweenService:Create(myHRP, info, goal):Play()
+    end
+end)
+
+-- =============================================
+-- MISC TAB — SPEED BOOST
+-- =============================================
+
+MiscTab:CreateParagraph({
+    Title = "Speed Boost INFO",
+    Content = "Pushes you in your move direction every frame via TranslateBy. Works even in games that reset WalkSpeed since it never touches WalkSpeed at all."
+})
+
+local speedBoostEnabled = false
+local speedBoostAmount  = 30
+
+MiscTab:CreateToggle({
+    Name = "Speed Boost",
+    CurrentValue = false,
+    Flag = "SpeedBoost",
+    Callback = function(v)
+        speedBoostEnabled = v
+    end,
+})
+
+MiscTab:CreateSlider({
+    Name = "Boost Strength",
+    Range = {1, 150},
+    Increment = 1,
+    Suffix = "",
+    CurrentValue = speedBoostAmount,
+    Flag = "SpeedBoostAmount",
+    Callback = function(v)
+        speedBoostAmount = v
+    end,
+})
+
+RunService.Heartbeat:Connect(function(delta)
+    if not speedBoostEnabled then return end
+
+    local c = localPlayer.Character
+    if not c then return end
+
+    local hum = c:FindFirstChildOfClass("Humanoid")
+    if not hum or hum.Health <= 0 then return end
+
+    local moveDir = hum.MoveDirection
+    if moveDir.Magnitude == 0 then return end
+
+    c:TranslateBy(moveDir * speedBoostAmount * delta * 10)
 end)
 
 Rayfield:LoadConfiguration()
