@@ -170,7 +170,7 @@ Tab:CreateToggle({
 Tab:CreateSlider({
     Name = "Glide Speed",
     Range = {1, 100},
-    Increment = 1,
+    Increment = 0.1,
     Suffix = "",
     CurrentValue = glideV1Speed,
     Flag = "GlideSpeedV1",
@@ -358,8 +358,9 @@ end)
 -- AUTO GUARD (REWRITTEN)
 -- Finds basketball via workspace.Courts or
 -- workspace.Basketballs (practice).
--- Checks Basketball.Player.Value == plr.Name
+-- Checks Basketball.Player.Value (ObjectValue).
 -- Always positions in FRONT of target (contest).
+-- Offset updates in real time.
 -- =============================================
 
 Tab:CreateParagraph({
@@ -367,11 +368,11 @@ Tab:CreateParagraph({
     Content = "Follows the player holding the Basketball via Player value. Stays in front to contest. Team check supported."
 })
 
-local autoGuardEnabled   = false
-local autoGuardMaxStuds  = 20
+local autoGuardEnabled     = false
+local autoGuardMaxStuds    = 20
 local autoGuardFrontOffset = 3
-local autoGuardMode      = "Legit"
-local autoGuardTeamCheck = false
+local autoGuardMode        = "Legit"
+local autoGuardTeamCheck   = false
 
 Tab:CreateToggle({
     Name = "Auto Guard",
@@ -379,6 +380,9 @@ Tab:CreateToggle({
     Flag = "AutoGuard",
     Callback = function(v)
         autoGuardEnabled = v
+        if not v then
+            VirtualInput:SendKeyEvent(false, Enum.KeyCode.F, false, game)
+        end
     end,
 })
 
@@ -403,6 +407,18 @@ Tab:CreateSlider({
     end,
 })
 
+Tab:CreateSlider({
+    Name = "Guard Front Offset",
+    Range = {1, 15},
+    Increment = 1,
+    Suffix = " studs",
+    CurrentValue = autoGuardFrontOffset,
+    Flag = "GuardFrontOffset",
+    Callback = function(v)
+        autoGuardFrontOffset = v
+    end,
+})
+
 Tab:CreateDropdown({
     Name = "Guard Movement Mode",
     Options = {"Legit", "CFrame", "Tween"},
@@ -414,23 +430,9 @@ Tab:CreateDropdown({
     end,
 })
 
-
-Tab:CreateSlider({
-    Name = "Guard Front Offset",
-    Range = {1, 15},
-    Increment = 1,
-    Suffix = " studs",
-    CurrentValue = 3,
-    Flag = "GuardFrontOffset",
-    Callback = function(v)
-        autoGuardFrontOffset = v
-    end,
-})
-
 local TweenService = game:GetService("TweenService")
 local Workspace    = game:GetService("Workspace")
 
--- Court folder names
 local COURT_NAMES = {
     "1v1 (Matchmaking)",
     "1v1 Court_1", "1v1 Court_2", "1v1 Court_3", "1v1 Court_4",
@@ -439,8 +441,6 @@ local COURT_NAMES = {
     "Wager1v1_1",
 }
 
--- Returns the player who currently holds the basketball
--- by checking Basketball.Player.Value across all courts + practice
 local function getPlayerWithBall()
     local myChar = localPlayer.Character
     if not myChar then return nil, math.huge end
@@ -449,7 +449,6 @@ local function getPlayerWithBall()
 
     local basketballs = {}
 
-    -- Courts
     local courts = Workspace:FindFirstChild("Courts")
     if courts then
         for _, courtName in ipairs(COURT_NAMES) do
@@ -463,7 +462,6 @@ local function getPlayerWithBall()
         end
     end
 
-    -- Practice balls (multiple, dynamic, all named "Basketball")
     local practiceBalls = Workspace:FindFirstChild("Basketballs")
     if practiceBalls then
         for _, ball in ipairs(practiceBalls:GetChildren()) do
@@ -480,14 +478,12 @@ local function getPlayerWithBall()
         local playerVal = ball:FindFirstChild("Player")
         if not playerVal then continue end
 
-        -- Player is an ObjectValue so .Value is the Player instance directly
         local holder = playerVal.Value
         if not holder then continue end
         if typeof(holder) ~= "Instance" then continue end
         if not holder:IsA("Player") then continue end
         if holder == localPlayer then continue end
 
-        -- Team check
         if autoGuardTeamCheck and holder.Team == localPlayer.Team then continue end
 
         local holderChar = holder.Character
@@ -533,16 +529,17 @@ RunService.Heartbeat:Connect(function()
         return
     end
 
-    -- Hold F to guard/contest
     VirtualInput:SendKeyEvent(true, Enum.KeyCode.F, false, game)
 
-    -- Always position IN FRONT of target (between target and hoop/their facing direction)
-    -- "In front" = opposite of where they're looking, so we face them head-on
-    local targetLook  = targetHRP.CFrame.LookVector
-local contestPos  = targetHRP.Position + (targetLook * autoGuardFrontOffset) -- 3 studs in front of them
-    contestPos        = Vector3.new(contestPos.X, targetHRP.Position.Y, contestPos.Z)
+    -- Read offset every frame so slider changes apply instantly
+    local targetLook = targetHRP.CFrame.LookVector
+    local contestPos = Vector3.new(
+        targetHRP.Position.X + targetLook.X * autoGuardFrontOffset,
+        targetHRP.Position.Y,
+        targetHRP.Position.Z + targetLook.Z * autoGuardFrontOffset
+    )
 
-    if autoGuardMode == "Move:To" then
+    if autoGuardMode == "Legit" then
         hum:MoveTo(contestPos)
 
     elseif autoGuardMode == "CFrame" then
@@ -573,11 +570,6 @@ Tab:CreateButton({
 -- Never touches WalkSpeed.
 -- =============================================
 
-MiscTab:CreateParagraph({
-    Title = "Speed Boost INFO",
-    Content = "Pushes you in your move direction every frame via TranslateBy. Works even in games that reset WalkSpeed since it never touches WalkSpeed at all."
-})
-
 local speedBoostEnabled = false
 local speedBoostAmount  = 30
 
@@ -593,7 +585,7 @@ MiscTab:CreateToggle({
 MiscTab:CreateSlider({
     Name = "Boost Strength",
     Range = {1, 150},
-    Increment = 1,
+    Increment = 0.1,
     Suffix = "",
     CurrentValue = speedBoostAmount,
     Flag = "SpeedBoostAmount",
