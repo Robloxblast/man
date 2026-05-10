@@ -198,7 +198,7 @@ Tab:CreateToggle({
 Tab:CreateSlider({
     Name = "Glide Speed",
     Range = {1, 100},
-    Increment = 1,
+    Increment = 0.1,
     Suffix = "",
     CurrentValue = glideSpeed,
     Flag = "GlideSpeed",
@@ -591,12 +591,6 @@ end)
 -- =============================================
 -- MISC TAB — SPEED BOOST
 -- =============================================
-
-MiscTab:CreateParagraph({
-    Title = "Speed Boost INFO",
-    Content = "Pushes you in your move direction every frame via TranslateBy. Works even in games that reset WalkSpeed since it never touches WalkSpeed at all."
-})
-
 local speedBoostEnabled = false
 local speedBoostAmount  = 30
 
@@ -612,7 +606,7 @@ MiscTab:CreateToggle({
 MiscTab:CreateSlider({
     Name = "Boost Strength",
     Range = {1, 150},
-    Increment = 1,
+    Increment = 0.1,
     Suffix = "",
     CurrentValue = speedBoostAmount,
     Flag = "SpeedBoostAmount",
