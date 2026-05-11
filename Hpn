@@ -130,7 +130,7 @@ end
 -- =============================================
 
 local glideEnabled = false
-local glideSpeed   = 10
+local glideSpeed   = 0.5
 
 Tab:CreateToggle({
     Name = "Dribble Glide",
@@ -143,8 +143,8 @@ Tab:CreateToggle({
 
 Tab:CreateSlider({
     Name = "Glide Speed",
-    Range = {1, 100},
-    Increment = 0.1,
+    Range = {0, 100},
+    Increment = 0.01,
     Suffix = "",
     CurrentValue = glideSpeed,
     Flag = "GlideSpeed",
@@ -265,7 +265,7 @@ end)
 
 Tab:CreateParagraph({
     Title = "Anti Steal INFO",
-    Content = "Auto-dribbles (Z key) when a nearby opponent has their Stealing value active."
+    Content = "Auto-dribbles (Z key) when a nearby opponent tries to steal."
 })
 
 local antiStealEnabled  = false
@@ -338,7 +338,7 @@ end)
 
 Tab:CreateParagraph({
     Title = "Auto Guard INFO",
-    Content = "Follows the player whose Basketball value equals Basketball. Stays in front to contest. Holds F."
+    Content = "Follows the player who has the ball and stays in front to contest. Holds F."
 })
 
 local autoGuardEnabled     = false
@@ -354,7 +354,7 @@ Tab:CreateToggle({
     Callback = function(v)
         autoGuardEnabled = v
         if not v then
-            VirtualInput:SendKeyEvent(false, Enum.KeyCode.F, false, game)
+            VirtualInput:SendKeyEvent(false, Enum.KeyCode.G, false, game)
         end
     end,
 })
@@ -420,9 +420,13 @@ local function getPlayerWithBall()
         local plrHRP = plr.Character:FindFirstChild("HumanoidRootPart")
         if not plrHRP then continue end
 
-        -- Check Values.Basketball value equals "Basketball"
+        -- Basketball is an ObjectValue
+        -- if player has the ball, .Value will be the Basketball instance
+        -- if they don't, .Value will be nil
         local ballVal = getPlayerVal(plr, "Basketball")
-        if not ballVal or ballVal.Value ~= "Basketball" then continue end
+        if not ballVal then continue end
+        if not ballVal.Value then continue end
+        if typeof(ballVal.Value) ~= "Instance" then continue end
 
         local dist = (myHRP.Position - plrHRP.Position).Magnitude
         if dist < closestDist then
@@ -434,6 +438,7 @@ local function getPlayerWithBall()
     return closestPlayer, closestDist
 end
 
+-- Auto Guard Heartbeat
 RunService.Heartbeat:Connect(function()
     if not autoGuardEnabled then return end
 
@@ -447,25 +452,23 @@ RunService.Heartbeat:Connect(function()
     local target, dist = getPlayerWithBall()
 
     if not target or not target.Character then
-        VirtualInput:SendKeyEvent(false, Enum.KeyCode.F, false, game)
+        VirtualInput:SendKeyEvent(false, Enum.KeyCode.G, false, game)
         return
     end
 
     local targetHRP = target.Character:FindFirstChild("HumanoidRootPart")
     if not targetHRP then
-        VirtualInput:SendKeyEvent(false, Enum.KeyCode.F, false, game)
+        VirtualInput:SendKeyEvent(false, Enum.KeyCode.G, false, game)
         return
     end
 
     if dist > autoGuardMaxStuds then
-        VirtualInput:SendKeyEvent(false, Enum.KeyCode.F, false, game)
+        VirtualInput:SendKeyEvent(false, Enum.KeyCode.G, false, game)
         return
     end
 
-    -- Hold F to contest
-    VirtualInput:SendKeyEvent(true, Enum.KeyCode.F, false, game)
+    VirtualInput:SendKeyEvent(true, Enum.KeyCode.G, false, game)
 
-    -- Position in front of target — reads offset every frame so slider is real time
     local targetLook = targetHRP.CFrame.LookVector
     local contestPos = Vector3.new(
         targetHRP.Position.X + targetLook.X * autoGuardFrontOffset,
@@ -473,16 +476,24 @@ RunService.Heartbeat:Connect(function()
         targetHRP.Position.Z + targetLook.Z * autoGuardFrontOffset
     )
 
-    if autoGuardMode == "Move:To" then
+    if autoGuardMode == "Legit" then
         hum:MoveTo(contestPos)
-
     elseif autoGuardMode == "CFrame" then
         myHRP.CFrame = CFrame.new(contestPos, targetHRP.Position)
-
     elseif autoGuardMode == "Tween" then
         local goal = { CFrame = CFrame.new(contestPos, targetHRP.Position) }
         local info = TweenInfo.new(0.1, Enum.EasingStyle.Linear)
         TweenService:Create(myHRP, info, goal):Play()
+    end
+end)
+
+-- WalkSpeed Lock Heartbeat
+RunService.Heartbeat:Connect(function()
+    local c = localPlayer.Character
+    if not c then return end
+    local hum = c:FindFirstChildOfClass("Humanoid")
+    if hum then
+        hum.WalkSpeed = 16.8
     end
 end)
 
