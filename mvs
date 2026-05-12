@@ -131,24 +131,33 @@ local hitboxTransparency = 0.5
 local hitboxTeamCheck    = true
 local hitboxConnections  = {}
 
-local function applyHitbox(plr)
-    if not hitboxEnabled then return end
-    if not plr.Character then return end
-    if hitboxTeamCheck and isTeammate(plr) then return end
-    local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-    hrp.Size         = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
-    hrp.Transparency = hitboxTransparency
-    hrp.CanCollide   = false
-    hrp.Massless     = false
-end
-
 local function resetHitbox(plr)
     if not plr.Character then return end
     local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
     hrp.Size         = Vector3.new(2, 2, 1)
     hrp.Transparency = 1
+    hrp.CanCollide   = false
+    hrp.Massless     = false
+end
+
+local function applyHitbox(plr)
+    if not hitboxEnabled then return end
+    if not plr.Character then return end
+    -- Always reset first so teammates get properly restored
+    local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    if hitboxTeamCheck and isTeammate(plr) then
+        -- Restore teammates to default
+        hrp.Size         = Vector3.new(2, 2, 1)
+        hrp.Transparency = 1
+        hrp.CanCollide   = false
+        hrp.Massless     = false
+        return
+    end
+    hrp.Size         = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
+    hrp.Transparency = hitboxTransparency
+    hrp.CanCollide   = false
     hrp.Massless     = false
 end
 
@@ -196,6 +205,14 @@ MainTab:CreateToggle({
     Flag = "HitboxTeamCheck",
     Callback = function(v)
         hitboxTeamCheck = v
+        -- Reapply immediately so teammates get restored or expanded right away
+        if hitboxEnabled then
+            for _, plr in pairs(Players:GetPlayers()) do
+                if plr ~= localPlayer then
+                    applyHitbox(plr)
+                end
+            end
+        end
     end,
 })
 
@@ -223,34 +240,41 @@ MainTab:CreateSlider({
     end,
 })
 
+-- Every frame: enforce hitbox on enemies, restore on teammates
 RunService.Heartbeat:Connect(function()
     if not hitboxEnabled then return end
     for _, plr in pairs(Players:GetPlayers()) do
         if plr == localPlayer then continue end
-        if hitboxTeamCheck and isTeammate(plr) then continue end
         if not plr.Character then continue end
         local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
-        if hrp then
+        if not hrp then continue end
+        if hitboxTeamCheck and isTeammate(plr) then
+            -- Restore teammates every frame so they never stay expanded
+            if hrp.Size ~= Vector3.new(2, 2, 1) then
+                hrp.Size         = Vector3.new(2, 2, 1)
+                hrp.Transparency = 1
+                hrp.CanCollide   = false
+                hrp.Massless     = false
+            end
+        else
             hrp.Size         = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
             hrp.Transparency = hitboxTransparency
-            hrp.Massless     = false
             hrp.CanCollide   = false
+            hrp.Massless     = false
         end
     end
 end)
 
 Players.PlayerAdded:Connect(function(plr)
     if hitboxEnabled then connectPlayer(plr) end
-
     plr.CharacterAdded:Connect(function()
         task.wait(0.5)
+        if hitboxEnabled then applyHitbox(plr) end
         if espEnabled and espMode == "Highlight" then
             removeESPHighlight(plr)
             createESPHighlight(plr)
         end
     end)
-
-    -- Clean up drawings when character is removed (death/respawn)
     plr.CharacterRemoving:Connect(function()
         removeESPBox(plr)
         removeESPTracer(plr)
@@ -258,17 +282,16 @@ Players.PlayerAdded:Connect(function(plr)
     end)
 end)
 
--- Also hook existing players already in the game
 for _, plr in pairs(Players:GetPlayers()) do
     if plr ~= localPlayer then
         plr.CharacterAdded:Connect(function()
             task.wait(0.5)
+            if hitboxEnabled then applyHitbox(plr) end
             if espEnabled and espMode == "Highlight" then
                 removeESPHighlight(plr)
                 createESPHighlight(plr)
             end
         end)
-
         plr.CharacterRemoving:Connect(function()
             removeESPBox(plr)
             removeESPTracer(plr)
@@ -282,10 +305,38 @@ Players.PlayerRemoving:Connect(function(plr)
         hitboxConnections[plr]:Disconnect()
         hitboxConnections[plr] = nil
     end
-     -- ESP cleanup
     removeESPBox(plr)
     removeESPTracer(plr)
     removeESPHighlight(plr)
+end)
+
+-- =============================================
+-- MATCH STATE WATCHER
+-- =============================================
+
+local wasInMatch = false
+
+task.spawn(function()
+    while true do
+        task.wait(0.5)
+        local currentlyInMatch = isInMatch()
+        if currentlyInMatch ~= wasInMatch then
+            wasInMatch = currentlyInMatch
+            task.wait(1) -- let teams fully populate
+            -- Reapply hitbox so teammates get restored and enemies get expanded
+            if hitboxEnabled then
+                for _, plr in pairs(Players:GetPlayers()) do
+                    if plr ~= localPlayer then
+                        applyHitbox(plr)
+                    end
+                end
+            end
+            -- Clear and rebuild ESP so colors/modes update correctly
+            if espEnabled then
+                clearAllESP()
+            end
+        end
+    end
 end)
 
 -- =============================================
@@ -560,6 +611,8 @@ local silentAimEnabled  = false
 local cameraLockEnabled = false
 local silentWallCheck   = false
 local cameraWallCheck   = false
+local silentAimFOVMode  = "Center"
+local silentLockedPlayer = nil
 
 local fovCircle        = Drawing.new("Circle")
 fovCircle.Visible      = false
@@ -567,24 +620,69 @@ fovCircle.Radius       = aimbotFOV
 fovCircle.Color        = Color3.fromRGB(255, 255, 255)
 fovCircle.Thickness    = 1
 fovCircle.Filled       = false
+fovCircle.NumSides     = 100
 fovCircle.Transparency = 1
 
+-- Update FOV circle position and size every frame
 RunService.RenderStepped:Connect(function()
-    local center       = camera.ViewportSize / 2
-    fovCircle.Position = center
-    fovCircle.Radius   = aimbotFOV
+    if not (silentAimEnabled or cameraLockEnabled) then
+        fovCircle.Visible = false
+        return
+    end
+    fovCircle.Visible = true
+    fovCircle.Radius  = aimbotFOV
+
+    if silentAimEnabled and silentAimFOVMode == "Follow Mouse" then
+        fovCircle.Position = Vector2.new(mouse.X, mouse.Y + 36)
+    else
+        fovCircle.Position = camera.ViewportSize / 2
+    end
 end)
 
 local function hasLineOfSight(targetHRP)
-    local origin    = camera.CFrame.Position
+    local origin = camera.CFrame.Position
     local direction = targetHRP.Position - origin
-    local ray       = Ray.new(origin, direction)
-    local hit       = workspace:FindPartOnRayWithIgnoreList(ray, {localPlayer.Character, targetHRP.Parent})
-    if not hit then return true end
-    return hit:IsDescendantOf(targetHRP.Parent)
+    local params = RaycastParams.new()
+    params.FilterType = Enum.RaycastFilterType.Blacklist
+    params.FilterDescendantsInstances = {localPlayer.Character, targetHRP.Parent}
+    local ray = workspace:Raycast(origin, direction, params)
+    return not ray
 end
 
-local function getClosestPlayerInFOV(useWallCheck)
+-- Separate functions for silent aim and camera lock
+-- so they each use their own mode independently
+local function getClosestPlayerSilent()
+    local closestPlayer = nil
+    local closestDist   = math.huge
+
+    local origin
+    if silentAimFOVMode == "Follow Mouse" then
+        origin = Vector2.new(mouse.X, mouse.Y)
+    else
+        origin = camera.ViewportSize / 2
+    end
+
+    for _, plr in pairs(Players:GetPlayers()) do
+        if plr == localPlayer then continue end
+        if not plr.Character then continue end
+        local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
+        local hum = plr.Character:FindFirstChildOfClass("Humanoid")
+        if not hrp or not hum or hum.Health <= 0 then continue end
+        local screenPos, visible = camera:WorldToViewportPoint(hrp.Position)
+        if not visible then continue end
+        local pos2D = Vector2.new(screenPos.X, screenPos.Y)
+        local dist  = (pos2D - origin).Magnitude
+        if dist <= aimbotFOV and dist < closestDist then
+            if silentWallCheck and not hasLineOfSight(hrp) then continue end
+            closestDist   = dist
+            closestPlayer = plr
+        end
+    end
+
+    return closestPlayer
+end
+
+local function getClosestPlayerCamera()
     local closestPlayer = nil
     local closestDist   = math.huge
     local center        = camera.ViewportSize / 2
@@ -597,17 +695,26 @@ local function getClosestPlayerInFOV(useWallCheck)
         if not hrp or not hum or hum.Health <= 0 then continue end
         local screenPos, visible = camera:WorldToViewportPoint(hrp.Position)
         if not visible then continue end
-        local pos2D          = Vector2.new(screenPos.X, screenPos.Y)
-        local distFromCenter = (pos2D - center).Magnitude
-        if distFromCenter <= aimbotFOV and distFromCenter < closestDist then
-            if useWallCheck and not hasLineOfSight(hrp) then continue end
-            closestDist   = distFromCenter
+        local pos2D = Vector2.new(screenPos.X, screenPos.Y)
+        local dist  = (pos2D - center).Magnitude
+        if dist <= aimbotFOV and dist < closestDist then
+            if cameraWallCheck and not hasLineOfSight(hrp) then continue end
+            closestDist   = dist
             closestPlayer = plr
         end
     end
 
     return closestPlayer
 end
+
+-- Lock target every frame for silent aim (like the working example)
+RunService.RenderStepped:Connect(function()
+    if silentAimEnabled then
+        silentLockedPlayer = getClosestPlayerSilent()
+    else
+        silentLockedPlayer = nil
+    end
+end)
 
 local function updateFOVCircle()
     fovCircle.Visible = silentAimEnabled or cameraLockEnabled
@@ -634,7 +741,20 @@ else
         Flag = "SilentAim",
         Callback = function(v)
             silentAimEnabled = v
+            if not v then silentLockedPlayer = nil end
             updateFOVCircle()
+        end,
+    })
+
+    AimbotTab:CreateDropdown({
+        Name = "Silent Aim FOV Mode",
+        Options = {"Center", "Follow Mouse"},
+        CurrentOption = {"Center"},
+        MultipleOptions = false,
+        Flag = "SilentAimFOVMode",
+        Callback = function(Options)
+            silentAimFOVMode = Options[1]
+            silentLockedPlayer = nil
         end,
     })
 
@@ -662,10 +782,11 @@ else
     local originalMethod
     originalMethod = hookmetamethod(game, "__index", newcclosure(function(self, key)
         if not checkcaller() and self:IsA("Mouse") and key == "Hit" then
-            if silentAimEnabled then
-                local target = getClosestPlayerInFOV(silentWallCheck)
-                if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
-                    return target.Character.HumanoidRootPart.CFrame
+            if silentAimEnabled and silentLockedPlayer then
+                local hrp = silentLockedPlayer.Character and
+                            silentLockedPlayer.Character:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    return hrp.CFrame
                 end
             end
         end
@@ -723,7 +844,7 @@ AimbotTab:CreateSlider({
 
 RunService.RenderStepped:Connect(function()
     if not cameraLockEnabled then return end
-    local target = getClosestPlayerInFOV(cameraWallCheck)
+    local target = getClosestPlayerCamera()
     if not target or not target.Character then return end
     local hrp = target.Character:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
