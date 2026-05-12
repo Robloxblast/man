@@ -1,0 +1,802 @@
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+local Window = Rayfield:CreateWindow({
+   Name = "Murderers VS Sheriffs",
+   Icon = 0,
+   LoadingTitle = "Loading Script Please Wait...",
+   LoadingSubtitle = "by Xarxynth Hub",
+   ShowText = "Rayfield",
+   Theme = "Default",
+
+   ToggleUIKeybind = "N",
+
+   DisableRayfieldPrompts = false,
+   DisableBuildWarnings = false,
+
+   ConfigurationSaving = {
+      Enabled = true,
+      FolderName = nil,
+      FileName = "Big Hub"
+   },
+
+   Discord = {
+      Enabled = false,
+      Invite = "noinvitelink",
+      RememberJoins = true
+   },
+
+   KeySystem = false,
+   KeySettings = {
+      Title = "Untitled",
+      Subtitle = "Key System",
+      Note = "No method of obtaining the key is provided",
+      FileName = "Key",
+      SaveKey = true,
+      GrabKeyFromSite = false,
+      Key = {"Hello"}
+   }
+})
+
+-- =============================================
+-- SERVICES
+-- =============================================
+
+local Players        = game:GetService("Players")
+local RunService     = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService   = game:GetService("TweenService")
+
+local localPlayer = Players.LocalPlayer
+local camera      = workspace.CurrentCamera
+local mouse       = localPlayer:GetMouse()
+
+-- =============================================
+-- TABS
+-- =============================================
+
+local MainTab   = Window:CreateTab("Main",    "rewind")
+local AimbotTab = Window:CreateTab("Aimbot",  "crosshair")
+local MiscTab   = Window:CreateTab("Misc",    "zap")
+
+-- =============================================
+-- TEAM CHECK HELPER
+-- Reads PlayerGui.Main.MainGameFrame.PlayersFrame
+-- TeamBlueFrame / TeamRedFrame to determine team.
+-- =============================================
+
+local function getLocalTeam()
+    local gui = localPlayer:FindFirstChild("PlayerGui")
+    if not gui then return nil end
+    local main = gui:FindFirstChild("Main")
+    if not main then return nil end
+    local mgf = main:FindFirstChild("MainGameFrame")
+    if not mgf then return nil end
+    local pf = mgf:FindFirstChild("PlayersFrame")
+    if not pf then return nil end
+
+    local blueFrame = pf:FindFirstChild("TeamBlueFrame")
+    local redFrame  = pf:FindFirstChild("TeamRedFrame")
+
+    if blueFrame and blueFrame:FindFirstChild(localPlayer.Name) then
+        return "Blue"
+    elseif redFrame and redFrame:FindFirstChild(localPlayer.Name) then
+        return "Red"
+    end
+    return nil
+end
+
+local function getPlayerTeam(plr)
+    local gui = localPlayer:FindFirstChild("PlayerGui")
+    if not gui then return nil end
+    local main = gui:FindFirstChild("Main")
+    if not main then return nil end
+    local mgf = main:FindFirstChild("MainGameFrame")
+    if not mgf then return nil end
+    local pf = mgf:FindFirstChild("PlayersFrame")
+    if not pf then return nil end
+
+    local blueFrame = pf:FindFirstChild("TeamBlueFrame")
+    local redFrame  = pf:FindFirstChild("TeamRedFrame")
+
+    if blueFrame and blueFrame:FindFirstChild(plr.Name) then
+        return "Blue"
+    elseif redFrame and redFrame:FindFirstChild(plr.Name) then
+        return "Red"
+    end
+    return nil
+end
+
+local function isTeammate(plr)
+    local myTeam  = getLocalTeam()
+    local plrTeam = getPlayerTeam(plr)
+    if not myTeam or not plrTeam then return false end
+    return myTeam == plrTeam
+end
+
+-- =============================================
+-- HITBOX EXPANDER
+-- =============================================
+
+MainTab:CreateParagraph({
+    Title = "Hitbox Expander INFO",
+    Content = "Expands Hitbox of all enemies. Team Check prevents expanding teammates. Re-applies on when teammates/enemies die."
+})
+
+local hitboxEnabled      = false
+local hitboxSize         = 5
+local hitboxTransparency = 0.5
+local hitboxTeamCheck    = true
+local hitboxConnections  = {}
+
+local function applyHitbox(plr)
+    if not hitboxEnabled then return end
+    if not plr.Character then return end
+    if hitboxTeamCheck and isTeammate(plr) then return end
+
+    local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    hrp.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
+hrp.Transparency = hitboxTransparency
+hrp.CanCollide = false
+hrp.Massless = false
+end
+
+local function resetHitbox(plr)
+    if not plr.Character then return end
+    local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    hrp.Size         = Vector3.new(2, 2, 1)
+    hrp.Transparency = 1
+    hrp.Massless     = false
+end
+
+local function connectPlayer(plr)
+    if plr == localPlayer then return end
+
+    -- Apply on current character
+    if plr.Character then
+        applyHitbox(plr)
+    end
+
+    -- Re-apply on respawn
+    if hitboxConnections[plr] then
+        hitboxConnections[plr]:Disconnect()
+    end
+    hitboxConnections[plr] = plr.CharacterAdded:Connect(function(newChar)
+        task.wait(0.5) -- wait for character to load
+        applyHitbox(plr)
+    end)
+end
+
+local function disconnectPlayer(plr)
+    if hitboxConnections[plr] then
+        hitboxConnections[plr]:Disconnect()
+        hitboxConnections[plr] = nil
+    end
+    resetHitbox(plr)
+end
+
+MainTab:CreateToggle({
+    Name = "Hitbox Expander",
+    CurrentValue = false,
+    Flag = "HitboxExpander",
+    Callback = function(v)
+        hitboxEnabled = v
+        if v then
+            for _, plr in pairs(Players:GetPlayers()) do
+                connectPlayer(plr)
+            end
+        else
+            for _, plr in pairs(Players:GetPlayers()) do
+                disconnectPlayer(plr)
+            end
+        end
+    end,
+})
+
+MainTab:CreateToggle({
+    Name = "Hitbox Team Check",
+    CurrentValue = true,
+    Flag = "HitboxTeamCheck",
+    Callback = function(v)
+        hitboxTeamCheck = v
+    end,
+})
+
+MainTab:CreateSlider({
+    Name = "Hitbox Size",
+    Range = {1, 20},
+    Increment = 0.5,
+    Suffix = "",
+    CurrentValue = hitboxSize,
+    Flag = "HitboxSize",
+    Callback = function(v)
+        hitboxSize = v
+    end,
+})
+
+MainTab:CreateSlider({
+    Name = "Hitbox Transparency",
+    Range = {0, 1},
+    Increment = 0.05,
+    Suffix = "",
+    CurrentValue = hitboxTransparency,
+    Flag = "HitboxTransparency",
+    Callback = function(v)
+        hitboxTransparency = v
+    end,
+})
+
+-- Apply hitbox every frame so size/transparency updates in real time
+RunService.Heartbeat:Connect(function()
+    if not hitboxEnabled then return end
+    for _, plr in pairs(Players:GetPlayers()) do
+        if plr == localPlayer then continue end
+        if hitboxTeamCheck and isTeammate(plr) then continue end
+        if not plr.Character then continue end
+        local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            hrp.Size         = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
+            hrp.Transparency = hitboxTransparency
+            hrp.Massless     = false
+            hrp.CanCollide   = false
+        end
+    end
+end)
+
+-- Connect new players as they join
+Players.PlayerAdded:Connect(function(plr)
+    if hitboxEnabled then
+        connectPlayer(plr)
+    end
+end)
+
+Players.PlayerRemoving:Connect(function(plr)
+    if hitboxConnections[plr] then
+        hitboxConnections[plr]:Disconnect()
+        hitboxConnections[plr] = nil
+    end
+end)
+
+-- =============================================
+-- ESP
+-- =============================================
+
+-- =============================================
+-- ESP
+-- =============================================
+
+MainTab:CreateParagraph({
+    Title = "ESP INFO",
+    Content = "Creates an ESP on players. Choose between Box, Tracer, or Highlight mode. Toggle Include Teammates to show teammates too."
+})
+
+local espEnabled       = false
+local espTeammates     = false
+local espMode          = "Box"
+local espEnemyColor    = Color3.fromRGB(255, 0, 0)
+local espTeammateColor = Color3.fromRGB(0, 255, 0)
+
+-- Drawing-based
+local espBoxes   = {}
+local espTracers = {}
+-- Highlight-based
+local espHighlights = {}
+
+-- ── Box helpers ───────────────────────────────
+
+local function createESPBox(plr)
+    if espBoxes[plr] then return end
+    local box = Drawing.new("Square")
+    box.Visible      = false
+    box.Color        = espEnemyColor
+    box.Thickness    = 1
+    box.Filled       = false
+    box.Transparency = 1
+    espBoxes[plr] = box
+end
+
+local function removeESPBox(plr)
+    if espBoxes[plr] then
+        espBoxes[plr]:Remove()
+        espBoxes[plr] = nil
+    end
+end
+
+-- ── Tracer helpers ────────────────────────────
+
+local function createESPTracer(plr)
+    if espTracers[plr] then return end
+    local line = Drawing.new("Line")
+    line.Visible      = false
+    line.Color        = espEnemyColor
+    line.Thickness    = 1
+    line.Transparency = 1
+    espTracers[plr] = line
+end
+
+local function removeESPTracer(plr)
+    if espTracers[plr] then
+        espTracers[plr]:Remove()
+        espTracers[plr] = nil
+    end
+end
+
+-- ── Highlight helpers ─────────────────────────
+
+local function createESPHighlight(plr)
+    if espHighlights[plr] then return end
+    if not plr.Character then return end
+    local hl = Instance.new("Highlight")
+    hl.Name              = "IYESPHighlight"
+    hl.FillColor         = espEnemyColor
+    hl.OutlineColor      = espEnemyColor
+    hl.FillTransparency  = 0.5
+    hl.OutlineTransparency = 0
+    hl.DepthMode         = Enum.HighlightDepthMode.AlwaysOnTop
+    hl.Parent            = plr.Character
+    espHighlights[plr] = hl
+end
+
+local function removeESPHighlight(plr)
+    if espHighlights[plr] then
+        espHighlights[plr]:Destroy()
+        espHighlights[plr] = nil
+    end
+end
+
+-- ── Clear all ESP ─────────────────────────────
+
+local function clearAllESP()
+    for plr, _ in pairs(espBoxes)      do removeESPBox(plr)       end
+    for plr, _ in pairs(espTracers)    do removeESPTracer(plr)     end
+    for plr, _ in pairs(espHighlights) do removeESPHighlight(plr)  end
+end
+
+-- ── RenderStepped loop ────────────────────────
+
+RunService.RenderStepped:Connect(function()
+    if not espEnabled then
+        for _, box  in pairs(espBoxes)   do box.Visible  = false end
+        for _, line in pairs(espTracers) do line.Visible = false end
+        for _, hl   in pairs(espHighlights) do hl.Enabled = false end
+        return
+    end
+
+    for _, plr in pairs(Players:GetPlayers()) do
+        if plr == localPlayer then continue end
+
+        local teammate = isTeammate(plr)
+        local showThis = espTeammates or not teammate
+        local col      = teammate and espTeammateColor or espEnemyColor
+
+        -- Hide inactive modes
+        if espBoxes[plr]      then espBoxes[plr].Visible      = false end
+        if espTracers[plr]    then espTracers[plr].Visible     = false end
+        if espHighlights[plr] then espHighlights[plr].Enabled  = false end
+
+        if not showThis      then continue end
+        if not plr.Character then continue end
+
+        local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
+        local hum = plr.Character:FindFirstChildOfClass("Humanoid")
+        if not hrp or not hum or hum.Health <= 0 then continue end
+
+        -- ── BOX ──
+        if espMode == "Box" then
+            createESPBox(plr)
+            local box = espBoxes[plr]
+
+            local topPos,    topVis    = camera:WorldToViewportPoint(hrp.Position + Vector3.new(0, 3, 0))
+            local bottomPos, bottomVis = camera:WorldToViewportPoint(hrp.Position - Vector3.new(0, 3, 0))
+
+            if not topVis and not bottomVis then
+                box.Visible = false
+                continue
+            end
+
+            local height = math.abs(topPos.Y - bottomPos.Y)
+            local width  = height * 0.6
+            box.Size     = Vector2.new(width, height)
+            box.Position = Vector2.new(topPos.X - width / 2, topPos.Y)
+            box.Color    = col
+            box.Visible  = true
+
+        -- ── TRACER ──
+        elseif espMode == "Tracer" then
+            createESPTracer(plr)
+            local line = espTracers[plr]
+
+            local screenPos, visible = camera:WorldToViewportPoint(hrp.Position)
+            if not visible then
+                line.Visible = false
+                continue
+            end
+
+            local center = camera.ViewportSize
+            line.From    = Vector2.new(center.X / 2, center.Y)
+            line.To      = Vector2.new(screenPos.X, screenPos.Y)
+            line.Color   = col
+            line.Visible = true
+
+        -- ── HIGHLIGHT ──
+        elseif espMode == "Highlight" then
+            -- Re-parent if character changed
+            if not espHighlights[plr] or espHighlights[plr].Parent ~= plr.Character then
+                removeESPHighlight(plr)
+                createESPHighlight(plr)
+            end
+            local hl = espHighlights[plr]
+            if hl then
+                hl.FillColor    = col
+                hl.OutlineColor = col
+                hl.Enabled      = true
+            end
+        end
+    end
+end)
+
+-- Handle character respawns for Highlight mode
+Players.PlayerAdded:Connect(function(plr)
+    plr.CharacterAdded:Connect(function()
+        task.wait(0.5)
+        if espEnabled and espMode == "Highlight" then
+            removeESPHighlight(plr)
+            createESPHighlight(plr)
+        end
+    end)
+end)
+
+for _, plr in pairs(Players:GetPlayers()) do
+    if plr ~= localPlayer then
+        plr.CharacterAdded:Connect(function()
+            task.wait(0.5)
+            if espEnabled and espMode == "Highlight" then
+                removeESPHighlight(plr)
+                createESPHighlight(plr)
+            end
+        end)
+    end
+end
+
+-- ── UI Controls ───────────────────────────────
+
+MainTab:CreateToggle({
+    Name = "ESP",
+    CurrentValue = false,
+    Flag = "ESP",
+    Callback = function(v)
+        espEnabled = v
+        if not v then clearAllESP() end
+    end,
+})
+
+MainTab:CreateDropdown({
+    Name = "ESP Mode",
+    Options = {"Box", "Tracer", "Highlight"},
+    CurrentOption = {"Box"},
+    MultipleOptions = false,
+    Flag = "ESPMode",
+    Callback = function(Options)
+        espMode = Options[1]
+        clearAllESP()
+    end,
+})
+
+MainTab:CreateToggle({
+    Name = "ESP Include Teammates",
+    CurrentValue = false,
+    Flag = "ESPTeammates",
+    Callback = function(v)
+        espTeammates = v
+    end,
+})
+
+MainTab:CreateColorPicker({
+    Name = "ESP Enemy Color",
+    Color = Color3.fromRGB(255, 0, 0),
+    Flag = "ESPEnemyColor",
+    Callback = function(Value)
+        espEnemyColor = Value
+    end,
+})
+
+MainTab:CreateColorPicker({
+    Name = "ESP Teammate Color",
+    Color = Color3.fromRGB(0, 255, 0),
+    Flag = "ESPTeammateColor",
+    Callback = function(Value)
+        espTeammateColor = Value
+    end,
+})
+
+-- =============================================
+-- AIMBOT TAB
+-- =============================================
+
+local aimbotFOV        = 100
+local aimbotSmoothing  = 1
+local silentAimEnabled = false
+local cameraLockEnabled = false
+local silentWallCheck  = false
+local cameraWallCheck  = false
+
+local fovCircle           = Drawing.new("Circle")
+fovCircle.Visible         = false
+fovCircle.Radius          = aimbotFOV
+fovCircle.Color           = Color3.fromRGB(255, 255, 255)
+fovCircle.Thickness       = 1
+fovCircle.Filled          = false
+fovCircle.Transparency    = 1
+
+RunService.RenderStepped:Connect(function()
+    local center       = camera.ViewportSize / 2
+    fovCircle.Position = center
+    fovCircle.Radius   = aimbotFOV
+end)
+
+-- ── Wall check helper ─────────────────────────
+
+local function hasLineOfSight(targetHRP)
+    local origin    = camera.CFrame.Position
+    local direction = (targetHRP.Position - origin)
+    local ray       = Ray.new(origin, direction)
+    local hit       = workspace:FindPartOnRayWithIgnoreList(ray, {localPlayer.Character, targetHRP.Parent})
+    -- if nothing was hit, or what was hit is the target itself, we have LOS
+    if not hit then return true end
+    return hit:IsDescendantOf(targetHRP.Parent)
+end
+
+-- ── Closest player in FOV ─────────────────────
+
+local function getClosestPlayerInFOV(useWallCheck)
+    local closestPlayer = nil
+    local closestDist   = math.huge
+    local center        = camera.ViewportSize / 2
+
+    for _, plr in pairs(Players:GetPlayers()) do
+        if plr == localPlayer then continue end
+        if not plr.Character then continue end
+        local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
+        local hum = plr.Character:FindFirstChildOfClass("Humanoid")
+        if not hrp or not hum or hum.Health <= 0 then continue end
+
+        local screenPos, visible = camera:WorldToViewportPoint(hrp.Position)
+        if not visible then continue end
+
+        local pos2D          = Vector2.new(screenPos.X, screenPos.Y)
+        local distFromCenter = (pos2D - center).Magnitude
+
+        if distFromCenter <= aimbotFOV and distFromCenter < closestDist then
+            -- wall check
+            if useWallCheck and not hasLineOfSight(hrp) then continue end
+            closestDist   = distFromCenter
+            closestPlayer = plr
+        end
+    end
+
+    return closestPlayer
+end
+
+-- ── FOV Circle visibility helper ─────────────
+
+local function updateFOVCircle()
+    fovCircle.Visible = silentAimEnabled or cameraLockEnabled
+end
+
+-- =============================================
+-- SILENT AIM
+-- =============================================
+
+local hookSupported = typeof(hookmetamethod) == "function"
+
+if not hookSupported then
+    Rayfield:Notify({
+        Title = "Silent Aim Unavailable",
+        Content = "Your executor doesn't support hookmetamethod so Silent Aim has been hidden. Camera Lock still works normally.",
+        Duration = 8,
+        Image = 4483362458,
+    })
+else
+    AimbotTab:CreateParagraph({
+        Title = "Silent Aim",
+        Content = "Redirects your mouse hit to the closest enemy in your FOV."
+    })
+
+    AimbotTab:CreateToggle({
+        Name = "Silent Aim",
+        CurrentValue = false,
+        Flag = "SilentAim",
+        Callback = function(v)
+            silentAimEnabled = v
+            updateFOVCircle()
+        end,
+    })
+
+    AimbotTab:CreateToggle({
+        Name = "Silent Aim Wall Check",
+        CurrentValue = false,
+        Flag = "SilentAimWallCheck",
+        Callback = function(v)
+            silentWallCheck = v
+        end,
+    })
+
+    AimbotTab:CreateSlider({
+        Name = "Silent Aim FOV",
+        Range = {10, 500},
+        Increment = 1,
+        Suffix = " px",
+        CurrentValue = aimbotFOV,
+        Flag = "SilentAimFOV",
+        Callback = function(v)
+            aimbotFOV = v
+        end,
+    })
+
+    local originalMethod
+    originalMethod = hookmetamethod(game, "__index", newcclosure(function(self, key)
+        if not checkcaller() and self:IsA("Mouse") and key == "Hit" then
+            if silentAimEnabled then
+                local target = getClosestPlayerInFOV(silentWallCheck)
+                if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+                    return target.Character.HumanoidRootPart.CFrame
+                end
+            end
+        end
+        return originalMethod(self, key)
+    end))
+end
+
+-- =============================================
+-- CAMERA LOCK
+-- =============================================
+
+AimbotTab:CreateParagraph({
+    Title = "Camera Lock",
+    Content = "Snaps your camera toward the closest enemy in FOV."
+})
+
+AimbotTab:CreateToggle({
+    Name = "Camera Lock",
+    CurrentValue = false,
+    Flag = "CameraLock",
+    Callback = function(v)
+        cameraLockEnabled = v
+        updateFOVCircle()
+    end,
+})
+
+AimbotTab:CreateToggle({
+    Name = "Camera Lock Wall Check",
+    CurrentValue = false,
+    Flag = "CameraLockWallCheck",
+    Callback = function(v)
+        cameraWallCheck = v
+    end,
+})
+
+AimbotTab:CreateSlider({
+    Name = "Camera Lock FOV",
+    Range = {10, 500},
+    Increment = 1,
+    Suffix = " px",
+    CurrentValue = aimbotFOV,
+    Flag = "CameraLockFOV",
+    Callback = function(v)
+        aimbotFOV = v
+    end,
+})
+
+AimbotTab:CreateSlider({
+    Name = "Camera Smoothness",
+    Range = {0.1, 1},
+    Increment = 0.1,
+    Suffix = "",
+    CurrentValue = aimbotSmoothing,
+    Flag = "CameraSmoothing",
+    Callback = function(v)
+        aimbotSmoothing = v
+    end,
+})
+
+RunService.RenderStepped:Connect(function()
+    if not cameraLockEnabled then return end
+    local target = getClosestPlayerInFOV(cameraWallCheck)
+    if not target or not target.Character then return end
+    local hrp = target.Character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    local lookAt = CFrame.new(camera.CFrame.Position, hrp.Position)
+    camera.CFrame = camera.CFrame:Lerp(lookAt, aimbotSmoothing)
+end)
+
+-- =============================================
+-- MISC TAB
+-- =============================================
+
+-- SPEED BOOST
+local speedBoostEnabled = false
+local speedBoostAmount  = 30
+
+MiscTab:CreateToggle({
+    Name = "Speed Boost",
+    CurrentValue = false,
+    Flag = "SpeedBoost",
+    Callback = function(v)
+        speedBoostEnabled = v
+    end,
+})
+
+MiscTab:CreateSlider({
+    Name = "Boost Strength",
+    Range = {1, 150},
+    Increment = 1,
+    Suffix = "",
+    CurrentValue = speedBoostAmount,
+    Flag = "SpeedBoostAmount",
+    Callback = function(v)
+        speedBoostAmount = v
+    end,
+})
+
+RunService.Heartbeat:Connect(function(delta)
+    if not speedBoostEnabled then return end
+    local c = localPlayer.Character
+    if not c then return end
+    local hum = c:FindFirstChildOfClass("Humanoid")
+    if not hum or hum.Health <= 0 then return end
+    local moveDir = hum.MoveDirection
+    if moveDir.Magnitude == 0 then return end
+    c:TranslateBy(moveDir * speedBoostAmount * delta * 10)
+end)
+
+MiscTab:CreateParagraph({
+    Title = "Noclip",
+    Content = "When you turn off the noclip jump so you wont clip through walls anymore."
+})
+-- NOCLIP
+local noclipEnabled = false
+
+MiscTab:CreateToggle({
+    Name = "Noclip",
+    CurrentValue = false,
+    Flag = "Noclip",
+    Callback = function(v)
+        noclipEnabled = v
+    end,
+})
+
+RunService.Stepped:Connect(function()
+    if not noclipEnabled then return end
+    local c = localPlayer.Character
+    if not c then return end
+    for _, part in pairs(c:GetDescendants()) do
+        if part:IsA("BasePart") and part.CanCollide then
+            part.CanCollide = false
+        end
+    end
+end)
+
+-- INFINITE JUMP
+local infiniteJumpEnabled = false
+
+MiscTab:CreateToggle({
+    Name = "Infinite Jump",
+    CurrentValue = false,
+    Flag = "InfiniteJump",
+    Callback = function(v)
+        infiniteJumpEnabled = v
+    end,
+})
+
+UserInputService.JumpRequest:Connect(function()
+    if not infiniteJumpEnabled then return end
+    local c = localPlayer.Character
+    if not c then return end
+    local hum = c:FindFirstChildOfClass("Humanoid")
+    if hum then
+        hum:ChangeState(Enum.HumanoidStateType.Jumping)
+    end
+end)
+
+Rayfield:LoadConfiguration()
