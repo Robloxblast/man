@@ -339,38 +339,6 @@ task.spawn(function()
     end
 end)
 
-
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
-local KnifeKillRemote = ReplicatedStorage.Packages.Networking["RE/Combat/KnifeKill"]
-
-local knifeKill = false
-
-local Toggle = Tab:CreateToggle({
-   Name = "Auto Kill All (Gives Coins)",
-   CurrentValue = false,
-   Flag = "AutoKnifeKill",
-   Callback = function(Value)
-      knifeKill = Value
-
-      if knifeKill then
-         task.spawn(function()
-            while knifeKill do
-               for _, plr in pairs(Players:GetPlayers()) do
-                  if plr ~= Players.LocalPlayer and not isTeammate(plr) then
-                     pcall(function()
-                        KnifeKillRemote:FireServer(plr)
-                     end)
-                  end
-               end
-               task.wait(0.1)
-            end
-         end)
-      end
-   end,
-})
-
 -- =============================================
 -- ESP
 -- =============================================
