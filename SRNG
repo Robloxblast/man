@@ -121,7 +121,9 @@ local Toggle = Tab:CreateToggle({
     end,
 })
 
+
 local rs = game:GetService("ReplicatedStorage")
+local user = game:GetService("Players").LocalPlayer
 
 local remote = rs:WaitForChild("Packages")
     :WaitForChild("_Index")
@@ -131,70 +133,482 @@ local remote = rs:WaitForChild("Packages")
     :WaitForChild("InventoryService")
     :WaitForChild("RemoteFunction")
 
-local foods = {
-    "grapes",
-    "apple",
-    "banana",	
-	"avocado",
-	"chicken",
-	"cherries",
-	"pizza",
-	"watermelon",
-	"carrot",
-	"broccoli"
+local invRF = rs:WaitForChild("Packages"):WaitForChild("_Index"):WaitForChild("leifstout_networker@0.3.1"):WaitForChild("networker"):WaitForChild("_remotes"):WaitForChild("InventoryService"):WaitForChild("RemoteFunction")
+local xpRF = rs:WaitForChild("Packages"):WaitForChild("_Index"):WaitForChild("leifstout_networker@0.3.1"):WaitForChild("networker"):WaitForChild("_remotes"):WaitForChild("XpTransferService"):WaitForChild("RemoteFunction")
+local boostRF = rs:WaitForChild("Packages"):WaitForChild("_Index"):WaitForChild("leifstout_networker@0.3.1"):WaitForChild("networker"):WaitForChild("_remotes"):WaitForChild("BoostService"):WaitForChild("RemoteFunction")
+local boostItems = {
+    "ultraLuck", "rollspeed", "currency", "luck",
+    "bigDice", "hugeDice", "invertedDice", "shinyDice", "jackpotDice"
 }
 
+local selectedBoosts = {}
+local autoBoost = false
+local boostThread = nil
+
+Tab:CreateSection("Auto Use Items")
+
+Tab:CreateDropdown({
+    Name = "Select Items",
+    Options = boostItems,
+    CurrentOption = {},
+    MultipleOptions = true,
+    Flag = "BoostItems",
+    Callback = function(Option)
+        selectedBoosts = Option
+    end,
+})
+
+Tab:CreateToggle({
+    Name = "Auto Use Items",
+    CurrentValue = false,
+    Flag = "AutoUseItems",
+    Callback = function(v)
+        autoBoost = v
+
+        if v then
+            boostThread = task.spawn(function()
+                while autoBoost do
+                    if #selectedBoosts == 0 then
+                        task.wait(1)
+                        continue
+                    end
+                    for _, item in ipairs(selectedBoosts) do
+                        pcall(function()
+                            boostRF:InvokeServer("requestUseBoost", item)
+                        end)
+                        task.wait(0.3)
+                    end
+                    task.wait(1)
+                end
+            end)
+        else
+            if boostThread then
+                task.cancel(boostThread)
+                boostThread = nil
+            end
+        end
+    end,
+})
+
+local rebirth = false
+local rebirthThread = nil
+
+local Toggle = Tab:CreateToggle({
+    Name = "Auto Rebirth",
+    CurrentValue = false,
+    Flag = "AutoRebirth",
+    Callback = function(Value)
+        rebirth = Value
+
+        if rebirth then
+            rebirthThread = task.spawn(function()
+                while rebirth do
+                    pcall(function()
+                        local args = {
+                            "requestRebirth"
+                        }
+
+                        game:GetService("ReplicatedStorage")
+                            :WaitForChild("Packages")
+                            :WaitForChild("_Index")
+                            :WaitForChild("leifstout_networker@0.3.1")
+                            :WaitForChild("networker")
+                            :WaitForChild("_remotes")
+                            :WaitForChild("RebirthService")
+                            :WaitForChild("RemoteFunction")
+                            :InvokeServer(unpack(args))
+                    end)
+
+                    task.wait(1)
+                end
+            end)
+        else
+            if rebirthThread then
+                task.cancel(rebirthThread)
+                rebirthThread = nil
+            end
+        end
+    end,
+})
+
+
+local rf = game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("_Index"):WaitForChild("leifstout_networker@0.3.1"):WaitForChild("networker"):WaitForChild("_remotes"):WaitForChild("UpgradeService"):WaitForChild("RemoteFunction")
+
+local function unlock(v)
+	rf:InvokeServer("requestUnlock", v)
+end
+
+local groups = {
+	["Coin Group"] = {
+		"coinIncome1","coinIncome2","coinIncome3","coinIncome4","coinIncome5",
+		"coinIncome6","coinIncome7","coinIncome8","coinIncome9","coinIncome10",
+		"coinIncome11","coinIncome12","coinIncome13","lootCurrency"
+	},
+
+	["Luck Group"] = {
+		"luck1","luck2","luck3","luck4","luck5","luck6","luck7","luck8",
+		"luck9","luck10","luck11","luck12","luck13","luck14","luck15","lootLuck"
+	},
+
+	["Roll Group"] = {
+		"rollSpeed1","rollSpeed2","rollSpeed3","rollSpeed4","rollSpeed5","rollSpeed6",
+		"bonusRolls1","bonusRolls2","bonusRolls3",
+		"extraRollChance1","extraRollChance2","extraRollChance3",
+		"diamondRolls","diamondRolls2","diamondRolls3","diamondRolls4",
+		"goldenRolls","goldenRolls2","goldenRolls3","goldenRolls4"
+	},
+
+	["Loot Group"] = {
+		"lootTree","lootWatermelon","lootDrumstick","lootChicken","lootPizza",
+		"lootApple","lootBanana","lootGrapes","lootCarrot","lootCherries",
+		"lootRollSpeed","lootUltraLuck"
+	},
+
+	["Enemy Group"] = {
+		"enemyCount2","enemyCount3","enemyCount4","enemyCount5","enemyCount6","enemyCount7",
+		"enemySpawnSpeed1","enemySpawnSpeed2","enemySpawnSpeed3",
+		"bigEnemies","hugeEnemies","hugeEnemyChance1",
+		"invertedEnemies","invertedEnemyChance1",
+		"shinyEnemies","shinyEnemyChance1"
+	},
+
+	["Friend Group"] = {
+		"friendLuck1","friendLuck2","friendLuck3","friendLuck4","friendLuck5","friendLuck6",
+		"friendLuckBoost1","friendLuckBoost2","friendLuckBoost3","friendLuckBoost4"
+	},
+
+	["Goop Group"] = {
+		"goop","goopDropRate1","goopDropRate2","goopDropRate3",
+		"goopDropRate4","goopDropRate5","goopDropRate6"
+	},
+
+	["Slime Group"] = {
+		"slimeTargetRange1","slimeTargetRange2","slimeTargetRange3",
+		"bigSlimes","hugeSlimes","shinySlimes","invertedSlimes"
+	},
+
+	["Slot Group"] = {
+		"slots2","slots3","slots4","slots5","slots6"
+	},
+
+	["Void Group"] = {
+		"voidRolls","voidRolls2","voidRolls3","voidRolls4"
+	},
+
+	["Misc Group"] = {
+		"playerTree","backpack","autoRoll","fruits",
+		"offlineLootAmount1","offlineLootAmount2","offlineLootAmount3","offlineLootAmount4","offlineLootAmount5",
+		"overkill1","overkill2","overkill3","overkill4","overkill5","overkill6"
+	}
+}
+
+local selectedGroups = {}
+
+Tab:CreateDropdown({
+	Name = "Upgrade Groups",
+	Options = {
+		"Coin Group",
+		"Luck Group",
+		"Roll Group",
+		"Loot Group",
+		"Enemy Group",
+		"Friend Group",
+		"Goop Group",
+		"Slime Group",
+		"Slot Group",
+		"Void Group",
+		"Misc Group"
+	},
+	CurrentOption = {"Coin Group"},
+	MultipleOptions = true,
+	Flag = "UpgradeGroups",
+	Callback = function(opt)
+		selectedGroups = opt
+	end
+})
+
+Tab:CreateToggle({
+	Name = "Auto Unlock",
+	CurrentValue = false,
+	Flag = "AutoUnlock",
+	Callback = function(state)
+		getgenv().autoUnlock = state
+
+		while getgenv().autoUnlock do
+			for _, groupName in ipairs(selectedGroups) do
+				local upgrades = groups[groupName]
+
+				if upgrades then
+					for _, upgrade in ipairs(upgrades) do
+						pcall(function()
+							unlock(upgrade)
+						end)
+
+						task.wait(0.1)
+					end
+				end
+			end
+
+			task.wait(1)
+		end
+	end
+})
+
+local rs = game:GetService("ReplicatedStorage")
+local user = game:GetService("Players").LocalPlayer
+
+local remote = rs:WaitForChild("Packages")
+    :WaitForChild("_Index")
+    :WaitForChild("leifstout_networker@0.3.1")
+    :WaitForChild("networker")
+    :WaitForChild("_remotes")
+    :WaitForChild("InventoryService")
+    :WaitForChild("RemoteFunction")
+
+local slimeMap = {}
 local selectedSlime = nil
 local autoFeed = false
+local scanning = false
+local autoXP = false
+local xpThread = nil
+
+local protectedSlimes = {}
+local receiverSlimes = {}
+
+local foods = {
+    "grapes", "apple", "banana", "avocado", "chicken",
+    "cherries", "pizza", "watermelon", "carrot", "broccoli"
+}
+
+-- ============================================================
+-- JSON STORAGE
+-- ============================================================
+
+local saveFile = user.Name .. "_slimemap.json"
+
+local function saveSlimeMap()
+    local data = {}
+    for display, id in pairs(slimeMap) do
+        data[display] = id
+    end
+    pcall(function()
+        writefile(saveFile, game:GetService("HttpService"):JSONEncode(data))
+    end)
+end
+
+local function loadSlimeMap()
+    local ok, content = pcall(readfile, saveFile)
+    if not ok or not content or content == "" then return end
+    local ok2, data = pcall(function()
+        return game:GetService("HttpService"):JSONDecode(content)
+    end)
+    if ok2 and type(data) == "table" then
+        for display, id in pairs(data) do
+            slimeMap[display] = id
+        end
+    end
+end
+
+-- ============================================================
+-- HELPERS
+-- ============================================================
+
+local function unequipSlot(slot)
+    invRF:InvokeServer("requestUnequip", slot)
+end
+
+local function equipSlime(id)
+    invRF:InvokeServer("requestEquip", id)
+end
+
+local function unequipSlime(id)
+    invRF:InvokeServer("requestUnequip", id)
+end
+
+local function equipBest()
+    invRF:InvokeServer("requestEquipBest")
+end
 
 local function getSlimesFolder()
-    for _,v in pairs(workspace:GetChildren()) do
+    for _, v in pairs(workspace:GetChildren()) do
         if v:FindFirstChild("Slimes") then
             return v.Slimes
         end
     end
 end
 
-local function getSlimeOptions()
-    local tbl = {}
-    local folder = getSlimesFolder()
+local function isGUID(str)
+    return str:match("^%.%x+%-%x+%-%x+%-%x+%-%x+$") ~= nil
+end
 
-    if folder then
-        for _,v in pairs(folder:GetChildren()) do
-            local billboard = v:FindFirstChild("SlimeInfoBillboard")
+local function formatName(raw)
+    local stripped = raw:gsub("^InventorySlime_", ""):gsub("^%-", ""):gsub("^%.", "")
+    return stripped:sub(1,1):upper() .. stripped:sub(2)
+end
 
-            if billboard and billboard:FindFirstChild("Content") then
-                local nameObj = billboard.Content:FindFirstChild("Name")
+local function resolveGUID(guid)
+    equipSlime(guid)
+    task.wait(0.8)
 
-                if nameObj and nameObj:IsA("TextLabel") then
-                    table.insert(tbl, nameObj.Text)
+    local slimesFolder = getSlimesFolder()
+    if not slimesFolder then
+        unequipSlime(guid)
+        task.wait(0.3)
+        return nil
+    end
+
+    local displayName = nil
+    for _, obj in ipairs(slimesFolder:GetChildren()) do
+        if obj.Name:sub(1, #guid) == guid then
+            local billboard = obj:FindFirstChild("SlimeInfoBillboard")
+            if billboard then
+                local content = billboard:FindFirstChild("Content")
+                if content then
+                    local nameLabel = content:FindFirstChild("Name")
+                    if nameLabel then
+                        displayName = nameLabel.Text
+                    end
                 end
             end
+            break
         end
     end
 
+    unequipSlime(guid)
+    task.wait(0.3)
+    return displayName
+end
+
+local function getSlimeOptions()
+    local tbl = {}
+    for display, _ in pairs(slimeMap) do
+        table.insert(tbl, display)
+    end
+    table.sort(tbl)
+    return tbl
+end
+
+local function getSlimeOptionsWithAll()
+    local tbl = {"All"}
+    for display, _ in pairs(slimeMap) do
+        table.insert(tbl, display)
+    end
+    table.sort(tbl, function(a, b)
+        if a == "All" then return true end
+        if b == "All" then return false end
+        return a < b
+    end)
     return tbl
 end
 
 local function getSlimeByText(text)
     local folder = getSlimesFolder()
+    if not folder then return nil end
 
-    if folder then
-        for _,v in pairs(folder:GetChildren()) do
-            local billboard = v:FindFirstChild("SlimeInfoBillboard")
+    local guid = slimeMap[text]
+    if guid then
+        for _, v in pairs(folder:GetChildren()) do
+            if v.Name:sub(1, #guid) == guid then
+                return v
+            end
+        end
+    end
 
-            if billboard and billboard:FindFirstChild("Content") then
-                local nameObj = billboard.Content:FindFirstChild("Name")
-
-                if nameObj and nameObj:IsA("TextLabel") and nameObj.Text == text then
-                    return v
-                end
+    for _, v in pairs(folder:GetChildren()) do
+        local billboard = v:FindFirstChild("SlimeInfoBillboard")
+        if billboard and billboard:FindFirstChild("Content") then
+            local nameObj = billboard.Content:FindFirstChild("Name")
+            if nameObj and nameObj:IsA("TextLabel") and nameObj.Text == text then
+                return v
             end
         end
     end
 end
 
-local Dropdown = Tab:CreateDropdown({
+-- ============================================================
+-- DROPDOWNS (declared early, assigned after UI creation)
+-- ============================================================
+
+local SlimeDropdown, XPGiverDropdown, XPReceiverDropdown, ProtectedDropdown
+
+local function refreshAllDropdowns()
+    local opts = getSlimeOptions()
+    local optsAll = getSlimeOptionsWithAll()
+
+    SlimeDropdown:Refresh(opts)
+    XPGiverDropdown:Refresh(optsAll)
+    XPReceiverDropdown:Refresh(opts)
+    ProtectedDropdown:Refresh(opts)
+end
+
+-- ============================================================
+-- SCANNER
+-- ============================================================
+
+local function initSlimeSystem()
+    if scanning then return end
+    scanning = true
+
+    Rayfield:Notify({ Title = "Slime Scanner", Content = "Disabling auto roll & clearing slots...", Duration = 4, Image = 4483362458 })
+
+    rs:WaitForChild("Packages"):WaitForChild("_Index"):WaitForChild("leifstout_networker@0.3.1"):WaitForChild("networker"):WaitForChild("_remotes"):WaitForChild("SettingsService"):WaitForChild("RemoteEvent"):FireServer("set", "autoRoll", false)
+    task.wait(0.2)
+
+    for slot = 1, 10 do
+        unequipSlot(slot)
+    end
+    task.wait(0.3)
+
+    local scrollFrame = user.PlayerGui.Root.Inventory.PageInventoryContent.SlimesPage.ScrollingFrame
+    local options = {}
+    local guidQueue = {}
+
+    for _, child in ipairs(scrollFrame:GetChildren()) do
+        if child:IsA("Frame") then
+            local raw = child.Name:gsub("^InventorySlime_", "")
+            if isGUID(raw) then
+                if not slimeMap[raw] then
+                    table.insert(guidQueue, raw)
+                end
+            else
+                local display = formatName(child.Name)
+                if not slimeMap[display] then
+                    slimeMap[display] = raw
+                end
+                table.insert(options, display)
+            end
+        end
+    end
+
+    if #guidQueue > 0 then
+        Rayfield:Notify({ Title = "Slime Scanner", Content = "Found " .. #guidQueue .. " unknown slime(s) — reading names. Please wait!", Duration = 5, Image = 4483362458 })
+        for i, guid in ipairs(guidQueue) do
+            Rayfield:Notify({ Title = "Reading Slime", Content = "Checking slime " .. i .. " of " .. #guidQueue .. "...", Duration = 2, Image = 4483362458 })
+            local display = resolveGUID(guid)
+            if display then
+                slimeMap[display] = guid
+                table.insert(options, display)
+            end
+        end
+    end
+
+    equipBest()
+    task.wait(0.2)
+
+    rs:WaitForChild("Packages"):WaitForChild("_Index"):WaitForChild("leifstout_networker@0.3.1"):WaitForChild("networker"):WaitForChild("_remotes"):WaitForChild("SettingsService"):WaitForChild("RemoteEvent"):FireServer("set", "autoRoll", true)
+
+    saveSlimeMap()
+    refreshAllDropdowns()
+    Rayfield:Notify({ Title = "Slime Scanner", Content = "Done! " .. #options .. " slime(s) found.", Duration = 4, Image = 4483362458 })
+
+    scanning = false
+end
+
+-- ============================================================
+-- UI
+-- ============================================================
+
+SlimeDropdown = Tab:CreateDropdown({
     Name = "Select Slime",
     Options = getSlimeOptions(),
     CurrentOption = {},
@@ -205,10 +619,30 @@ local Dropdown = Tab:CreateDropdown({
     end,
 })
 
+local Paragraph = Tab:CreateParagraph({Title = "Scan Slimes and Load Saved Slimes", Content = "They're both needed for Auto Feed and XP Transfer"})
+
 Tab:CreateButton({
-    Name = "Refresh Slimes",
+    Name = "Scan Slimes",
     Callback = function()
-        Dropdown:Refresh(getSlimeOptions())
+        if scanning then
+            Rayfield:Notify({ Title = "Slime Scanner", Content = "Already scanning, please wait!", Duration = 3, Image = 4483362458 })
+            return
+        end
+        slimeMap = {}
+        selectedSlime = nil
+        task.spawn(initSlimeSystem)
+    end,
+})
+
+Tab:CreateButton({
+    Name = "Load Saved Slimes",
+    Callback = function()
+        slimeMap = {}
+        loadSlimeMap()
+        refreshAllDropdowns()
+        local count = 0
+        for _ in pairs(slimeMap) do count = count + 1 end
+        Rayfield:Notify({ Title = "Slime Map", Content = "Loaded " .. count .. " slime(s) from save.", Duration = 3, Image = 4483362458 })
     end,
 })
 
@@ -239,14 +673,9 @@ Tab:CreateToggle({
                     local slimeId = rawName:match("^(.-)#") or rawName
                     local level = tonumber(rawName:match("#(%d+)")) or 1
 
-                    local args = {
-                        "requestUseFood",
-                        foods.selected or "grapes",
-                        slimeId,
-                        level
-                    }
-
-                    remote:InvokeServer(unpack(args))
+                    pcall(function()
+                        remote:InvokeServer("requestUseFood", foods.selected or "grapes", slimeId, level)
+                    end)
                 end
 
                 task.wait(1)
@@ -255,6 +684,348 @@ Tab:CreateToggle({
     end,
 })
 
+
+local HttpService = game:GetService("HttpService")
+
+local webhookUrl = ""
+local loggingEnabled = false
+local selectedRarities = {}
+
+local rarityOrder = {"K", "M", "B", "T", "Qd", "Qn", "Sx"}
+
+local function getRarityTier(text)
+    for _, suffix in ipairs(rarityOrder) do
+        if text:find(suffix) then
+            return suffix
+        end
+    end
+    return nil
+end
+
+local function shouldLog(tier)
+    if #selectedRarities == 0 then return false end
+    for _, r in ipairs(selectedRarities) do
+        if r == tier then return true end
+    end
+    return false
+end
+
+local function getSlimeRarityFromFrame(frame)
+    local btn = frame:FindFirstChild("SlimeButton")
+    if not btn then return nil end
+    local children = btn:GetChildren()
+    for _, child in ipairs(children) do
+        if child:IsA("TextLabel") then
+            return child.Text
+        end
+    end
+    -- fallback index 3
+    if children[3] and children[3]:FindFirstChildOfClass("TextLabel") then
+        return children[3]:FindFirstChildOfClass("TextLabel").Text
+    end
+    return nil
+end
+
+local function getSlimeRarityFromWorkspace(displayName)
+    local folder = getSlimesFolder()
+    if not folder then return nil end
+    for _, obj in ipairs(folder:GetChildren()) do
+        local billboard = obj:FindFirstChild("SlimeInfoBillboard")
+        if billboard then
+            local content = billboard:FindFirstChild("Content")
+            if content then
+                local nameLabel = content:FindFirstChild("Name")
+                if nameLabel and nameLabel.Text == displayName then
+                    local odds = content:FindFirstChild("Odds")
+                    if odds then
+                        local tl = odds:FindFirstChildOfClass("TextLabel")
+                        if tl then return tl.Text end
+                    end
+                end
+            end
+        end
+    end
+    return nil
+end
+
+local function sendWebhook(slimeName, rarity)
+    if webhookUrl == "" then return end
+    pcall(function()
+        request({
+            Url = webhookUrl,
+            Method = "POST",
+            Headers = { ["Content-Type"] = "application/json" },
+            Body = HttpService:JSONEncode({
+                embeds = {{
+                    title = "🟢 New Slime Rolled!",
+                    color = 0x00ff99,
+                    fields = {
+                        { name = "Slime", value = slimeName, inline = true },
+                        { name = "Rarity", value = rarity, inline = true },
+                    },
+                    footer = { text = "Xarxynth Hub • Slime Logger" }
+                }}
+            })
+        })
+    end)
+end
+
+-- ============================================================
+-- UI
+-- ============================================================
+
+Tab:CreateSection("Slime Logger")
+
+Tab:CreateInput({
+    Name = "Discord Webhook URL",
+    CurrentValue = "",
+    PlaceholderText = "https://discord.com/api/webhooks/...",
+    RemoveTextAfterFocusLost = false,
+    Flag = "WebhookInput",
+    Callback = function(Text)
+        webhookUrl = Text
+    end,
+})
+
+Tab:CreateDropdown({
+    Name = "Log Rarity Filter",
+    Options = rarityOrder,
+    CurrentOption = {},
+    MultipleOptions = true,
+    Flag = "RarityFilter",
+    Callback = function(Option)
+        selectedRarities = Option
+    end,
+})
+
+Tab:CreateToggle({
+    Name = "Enable Slime Logger",
+    CurrentValue = false,
+    Flag = "SlimeLogger",
+    Callback = function(v)
+        loggingEnabled = v
+    end,
+})
+
+Tab:CreateButton({
+    Name = "Test Webhook",
+    Callback = function()
+        if webhookUrl == "" then
+            Rayfield:Notify({ Title = "Webhook", Content = "No webhook URL set!", Duration = 3, Image = 4483362458 })
+            return
+        end
+        local ok = pcall(function()
+            request({
+                Url = webhookUrl,
+                Method = "POST",
+                Headers = { ["Content-Type"] = "application/json" },
+                Body = HttpService:JSONEncode({
+                    embeds = {{
+                        title = "✅ Webhook Test",
+                        color = 0x00ff99,
+                        description = "Your webhook is working correctly!",
+                        footer = { text = "Xarxynth Hub • Slime Logger" }
+                    }}
+                })
+            })
+        end)
+        if ok then
+            Rayfield:Notify({ Title = "Webhook", Content = "Test sent successfully!", Duration = 3, Image = 4483362458 })
+        else
+            Rayfield:Notify({ Title = "Webhook", Content = "Failed to send! Check your URL.", Duration = 3, Image = 4483362458 })
+        end
+    end,
+})
+
+-- ============================================================
+-- XP TRANSFER
+-- ============================================================
+
+Tab:CreateSection("XP Transfer")
+
+XPGiverDropdown = Tab:CreateDropdown({
+    Name = "XP Givers",
+    Options = getSlimeOptionsWithAll(),
+    CurrentOption = {"All"},
+    MultipleOptions = true,
+    Flag = "xpgivers",
+    Callback = function(Option)
+        -- stored but we read it fresh in the loop
+    end,
+})
+
+XPReceiverDropdown = Tab:CreateDropdown({
+    Name = "XP Receivers",
+    Options = getSlimeOptions(),
+    CurrentOption = {},
+    MultipleOptions = true,
+    Flag = "xpreceivers",
+    Callback = function(Option)
+        receiverSlimes = Option
+    end,
+})
+
+ProtectedDropdown = Tab:CreateDropdown({
+    Name = "Protected Slimes",
+    Options = getSlimeOptions(),
+    CurrentOption = {},
+    MultipleOptions = true,
+    Flag = "protectedslimes",
+    Callback = function(Option)
+        protectedSlimes = Option
+    end,
+})
+
+local function isProtected(display)
+    for _, p in ipairs(protectedSlimes) do
+        if p == display then return true end
+    end
+    return false
+end
+
+local function getGivers()
+    local selected = Rayfield.Flags and Rayfield.Flags["xpgivers"] and Rayfield.Flags["xpgivers"].CurrentOption or {"All"}
+    local useAll = false
+    for _, v in ipairs(selected) do
+        if v == "All" then useAll = true break end
+    end
+
+    local givers = {}
+    if useAll then
+        for display, id in pairs(slimeMap) do
+            if not isProtected(display) then
+                table.insert(givers, {display = display, id = id})
+            end
+        end
+    else
+        for _, display in ipairs(selected) do
+            if not isProtected(display) and slimeMap[display] then
+                table.insert(givers, {display = display, id = slimeMap[display]})
+            end
+        end
+    end
+
+    return givers
+end
+
+Tab:CreateToggle({
+    Name = "Auto XP Transfer",
+    CurrentValue = false,
+    Flag = "autoxp",
+    Callback = function(v)
+        autoXP = v
+
+        if v then
+            xpThread = task.spawn(function()
+                local receiverIndex = 1
+                while autoXP do
+                    if #receiverSlimes == 0 then
+                        task.wait(1)
+                        continue
+                    end
+
+                    local receiver = receiverSlimes[receiverIndex]
+                    local receiverId = slimeMap[receiver]
+                    receiverIndex = (receiverIndex % #receiverSlimes) + 1
+
+                    if not receiverId then
+                        task.wait(0.5)
+                        continue
+                    end
+
+                    local givers = getGivers()
+                    for _, giver in ipairs(givers) do
+                        if giver.display ~= receiver then
+                            pcall(function()
+                                xpRF:InvokeServer("requestTransferXp", giver.id, receiverId)
+                            end)
+                            task.wait(0.3)
+                        end
+                    end
+
+                    task.wait(1)
+                end
+            end)
+        else
+            if xpThread then
+                task.cancel(xpThread)
+                xpThread = nil
+            end
+        end
+    end,
+})
+
+-- ============================================================
+-- CHILD ADDED LISTENER
+-- ============================================================
+
+local scrollFrame = user.PlayerGui.Root.Inventory.PageInventoryContent.SlimesPage.ScrollingFrame
+
+scrollFrame.ChildAdded:Connect(function(child)
+    task.wait(0.5)
+    if not child:IsA("Frame") then return end
+    if scanning then return end
+
+    local raw = child.Name:gsub("^InventorySlime_", "")
+
+    if isGUID(raw) then
+        if slimeMap[raw] then return end
+        scanning = true
+        Rayfield:Notify({ Title = "New Slime Detected", Content = "Reading new slime name...", Duration = 3, Image = 4483362458 })
+        local display = resolveGUID(raw)
+        scanning = false
+        if display and not slimeMap[display] then
+            slimeMap[display] = raw
+            saveSlimeMap()
+            refreshAllDropdowns()
+            Rayfield:Notify({ Title = "New Slime Added", Content = display .. " added to the list!", Duration = 3, Image = 4483362458 })
+            if loggingEnabled then
+                task.spawn(function()
+                    local rarity = getSlimeRarityFromFrame(child)
+                    if not rarity then
+                        task.wait(1)
+                        rarity = getSlimeRarityFromWorkspace(display)
+                    end
+                    if rarity then
+                        local tier = getRarityTier(rarity)
+                        if tier and shouldLog(tier) then
+                            sendWebhook(display, rarity)
+                        end
+                    end
+                end)
+            end
+        end
+    else
+        local display = formatName(child.Name)
+        if slimeMap[display] then return end
+        slimeMap[display] = raw
+        saveSlimeMap()
+        refreshAllDropdowns()
+        Rayfield:Notify({ Title = "New Slime Added", Content = display .. " added to the list!", Duration = 3, Image = 4483362458 })
+        if loggingEnabled then
+            task.spawn(function()
+                local rarity = getSlimeRarityFromFrame(child)
+                if not rarity then
+                    task.wait(1)
+                    rarity = getSlimeRarityFromWorkspace(display)
+                end
+                if rarity then
+                    local tier = getRarityTier(rarity)
+                    if tier and shouldLog(tier) then
+                        sendWebhook(display, rarity)
+                    end
+                end
+            end)
+        end
+    end
+end)
+
+-- ============================================================
+-- LOAD SAVED DATA ON START
+-- ============================================================
+
+loadSlimeMap()
+refreshAllDropdowns()
 
 -- ============================================================
 -- REMOTE REFERENCES
@@ -404,11 +1175,44 @@ Tab:CreateToggle({
 })	
 
 
+local autoIndex = false
+local indexThread = nil
+local indexTypes = {"basic", "big", "huge", "shiny", "inverted"}
+
+local indexRF = game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("_Index"):WaitForChild("leifstout_networker@0.3.1"):WaitForChild("networker"):WaitForChild("_remotes"):WaitForChild("IndexService"):WaitForChild("RemoteFunction")
+
+Tab:CreateToggle({
+    Name = "Auto Claim Index",
+    CurrentValue = false,
+    Flag = "AutoClaimIndex",
+    Callback = function(v)
+        autoIndex = v
+
+        if v then
+            indexThread = task.spawn(function()
+                while autoIndex do
+                    for _, indexType in ipairs(indexTypes) do
+                        pcall(function()
+                            indexRF:InvokeServer("requestClaimReward", indexType)
+                        end)
+                        task.wait(0.3)
+                    end
+                    task.wait(1)
+                end
+            end)
+        else
+            if indexThread then
+                task.cancel(indexThread)
+                indexThread = nil
+            end
+        end
+    end,
+})
+
+
 local Players = game:GetService("Players")
 local TeleportService = game:GetService("TeleportService")
 local RunService = game:GetService("RunService")
-local HttpService = game:GetService("HttpService")
-
 local PlaceId = game.PlaceId
 local JobId = game.JobId
 if queue_on_teleport then
