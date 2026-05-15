@@ -410,17 +410,14 @@ local RunService = game:GetService("RunService")
 local HttpService = game:GetService("HttpService")
 
 local PlaceId = game.PlaceId
-local scriptUrl = "https://raw.githubusercontent.com/Robloxblast/man/refs/heads/main/SRNG"
 local JobId = game.JobId
-
 if queue_on_teleport then
     Players.LocalPlayer.OnTeleport:Connect(function(state)
         if state == Enum.TeleportState.Started then
-            queue_on_teleport("loadstring(game:HttpGet('" .. scriptUrl .. "'))()")
+            queue_on_teleport("loadstring(game:HttpGet('https://raw.githubusercontent.com/Robloxblast/man/refs/heads/main/SRNG'))()")
         end
     end)
 end
-
 -- ========================
 -- SERVER HOP FUNCTION
 -- ========================
@@ -479,10 +476,14 @@ local hopThread = nil
 local CHECK_INTERVAL = 5 -- check every 3 seconds
 
 local function getLuckText()
+    local playerGui = Players.LocalPlayer:FindFirstChild("PlayerGui")
+    if not playerGui then return nil end
+    local root = playerGui:FindFirstChild("Root")
+    if not root then return nil end
     local ok, text = pcall(function()
-        return Players.LocalPlayer.PlayerGui.Root.Shop.Content.ScrollingFrame.Frame.ImageLabel.Frame.TextLabelFrame.TextLabel.Text
+        return root.BottomBarStats.StatsList.LuckStat.LuckHoverInfo.Background["Global Luck"].Value.TextLabel.Text
     end)
-    if ok then return text end
+    if ok and type(text) == "string" then return text end
     return nil
 end
 
