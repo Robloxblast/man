@@ -410,7 +410,7 @@ local RunService = game:GetService("RunService")
 local HttpService = game:GetService("HttpService")
 
 local PlaceId = game.PlaceId
-local scriptUrl = "YOUR_RAW_SCRIPT_URL"
+local scriptUrl = "https://raw.githubusercontent.com/Robloxblast/man/refs/heads/main/SRNG"
 local JobId = game.JobId
 
 if queue_on_teleport then
@@ -476,7 +476,7 @@ end
 -- ========================
 local autoHop = false
 local hopThread = nil
-local CHECK_INTERVAL = 3 -- check every 3 seconds
+local CHECK_INTERVAL = 5 -- check every 3 seconds
 
 local function getLuckText()
     local ok, text = pcall(function()
