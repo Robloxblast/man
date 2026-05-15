@@ -412,6 +412,10 @@ local HttpService = game:GetService("HttpService")
 local PlaceId = game.PlaceId
 local JobId = game.JobId
 if queue_on_teleport then
+    game:GetService("TeleportService").LocalPlayerArrivedFromTeleport:Connect(function()
+        queue_on_teleport("loadstring(game:HttpGet('https://raw.githubusercontent.com/Robloxblast/man/refs/heads/main/SRNG'))()")
+    end)
+
     Players.LocalPlayer.OnTeleport:Connect(function(state)
         if state == Enum.TeleportState.Started then
             queue_on_teleport("loadstring(game:HttpGet('https://raw.githubusercontent.com/Robloxblast/man/refs/heads/main/SRNG'))()")
@@ -430,19 +434,14 @@ local function serverHop()
         )
     end)
 
-    if not ok then
-        return
-    end
+    if not ok then return end
 
     local body = HttpService:JSONDecode(result)
-
-    if not body or not body.data then
-        return
-    end
+    if not body or not body.data then return end
 
     local servers = {}
 
-    for _,v in ipairs(body.data) do
+    for _, v in ipairs(body.data) do
         if type(v) == "table"
         and v.playing
         and v.maxPlayers
@@ -453,6 +452,9 @@ local function serverHop()
     end
 
     if #servers > 0 then
+        if queue_on_teleport then
+            queue_on_teleport("loadstring(game:HttpGet('https://raw.githubusercontent.com/Robloxblast/man/refs/heads/main/SRNG'))()")
+        end
         TeleportService:TeleportToPlaceInstance(
             PlaceId,
             servers[math.random(1, #servers)],
