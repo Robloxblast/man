@@ -34,6 +34,43 @@ local Window = Rayfield:CreateWindow({
 local Tab = Window:CreateTab("Main", "rewind")
 local Misc = Window:CreateTab("Server Luck", "zap")
 
+
+local autoRoll = false
+local rollThread = nil
+
+Tab:CreateToggle({
+    Name = "Auto Roll",
+    CurrentValue = false,
+    Flag = "AutoRoll",
+    Callback = function(v)
+        autoRoll = v
+
+        if v then
+            rollThread = task.spawn(function()
+                while autoRoll do
+                    pcall(function()
+                        game:GetService("ReplicatedStorage")
+                            :WaitForChild("Packages")
+                            :WaitForChild("_Index")
+                            :WaitForChild("leifstout_networker@0.3.1")
+                            :WaitForChild("networker")
+                            :WaitForChild("_remotes")
+                            :WaitForChild("RollService")
+                            :WaitForChild("RemoteFunction")
+                            :InvokeServer("requestRoll")
+                    end)
+                    task.wait(0.1)
+                end
+            end)
+        else
+            if rollThread then
+                task.cancel(rollThread)
+                rollThread = nil
+            end
+        end
+    end,
+})
+
 local lootNames = {
     "Root", "cherries", "pizza", "apple", "carrot", "drumstick",
     "chicken", "watermelon", "banana", "avocado", "broccoli",
@@ -344,12 +381,12 @@ Tab:CreateToggle({
 							unlock(upgrade)
 						end)
 
-						task.wait(0.1)
+						task.wait(0.05)
 					end
 				end
 			end
 
-			task.wait(1)
+			task.wait(0.3)
 		end
 	end
 })
@@ -1092,99 +1129,108 @@ local AutoEquipToggle = Tab:CreateToggle({
     end,
 })
 
-local function getHighestUnlockedZone()
-    local highest = 0
+local rs = game:GetService("ReplicatedStorage")
+local players = game:GetService("Players")
+local run = game:GetService("RunService")
 
-    for i = 1, 28 do
-        local zone = ZonesFolder:FindFirstChild(tostring(i))
+local lp = players.LocalPlayer
+local char = lp.Character or lp.CharacterAdded:Wait()
+local hrp = char:WaitForChild("HumanoidRootPart")
 
-        if zone then
-            local gate = zone:FindFirstChild("Gate")
+local remote = rs:WaitForChild("Packages"):WaitForChild("_Index"):WaitForChild("leifstout_networker@0.3.1"):WaitForChild("networker"):WaitForChild("_remotes"):WaitForChild("ZonesService"):WaitForChild("RemoteFunction")
 
-            if gate then
-                local back = gate:FindFirstChild("Back")
+local zones = workspace:WaitForChild("Zones")
 
-                if back and back:IsA("BasePart") then
-                    if back.Transparency == 1 then
-                        highest = i
-                    end
-                end
-            end
-        end
-    end
+local autoPurchase = false
+local autoTP = false
 
-    return highest
+local function getBestZone()
+	local best = 0
+	for i = 1, 28 do
+		local zone = zones:FindFirstChild(tostring(i))
+		if not zone then continue end
+		local back = zone:FindFirstChild("Gate") and zone.Gate:FindFirstChild("Back")
+		if back and not back.CanCollide then
+			best = i + 1
+		end
+	end
+	return best
 end
 
-local function teleportToZone(zoneNumber)
-    local zone = ZonesFolder:FindFirstChild(tostring(zoneNumber))
-    if not zone then return end
-
-    local poi = zone:FindFirstChild("POI")
-    if not poi then return end
-
-    local spawnPart = poi:FindFirstChild("PlayerSpawn")
-    if not spawnPart then return end
-
-    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-
-    if hrp then
-        hrp.CFrame = spawnPart.CFrame + Vector3.new(0, 5, 0)
-    end
+local function getCurrentZone()
+	local best = 0
+	for i = 1, 28 do
+		local zone = zones:FindFirstChild(tostring(i))
+		if not zone then continue end
+		local back = zone:FindFirstChild("Gate") and zone.Gate:FindFirstChild("Back")
+		if back and not back.CanCollide then
+			best = i + 1
+		end
+	end
+	return best
 end
-
-local zoneThread
 
 Tab:CreateToggle({
-    Name = "Auto Zone",
-    CurrentValue = false,
-    Flag = "AutoZone",
-    Callback = function(v)
-        if v then
-            zoneThread = task.spawn(function()
-                while v do
-                    pcall(function()
-                        local highest = getHighestUnlockedZone()
+	Name = "Auto Purchase Zone",
+	CurrentValue = false,
+	Flag = "autobuy",
+	Callback = function(v)
+		autoPurchase = v
+	end,
+})
 
-                        if highest >= 28 then
-                            return
-                        end
+Tab:CreateToggle({
+	Name = "Auto TP Best Zone",
+	CurrentValue = false,
+	Flag = "autotp",
+	Callback = function(v)
+		autoTP = v
+	end,
+})
 
-                        local nextZone = highest + 1
+run.Heartbeat:Connect(function()
+	char = lp.Character
+	if not char then return end
+	hrp = char:FindFirstChild("HumanoidRootPart")
+	if not hrp then return end
 
-                        ZonesRemote:InvokeServer("requestPurchaseZone", nextZone)
+	if autoPurchase then
+		local current = getCurrentZone()
+		local nextZone = zones:FindFirstChild(tostring(current))
+		if nextZone then
+			local back = nextZone:FindFirstChild("Gate") and nextZone.Gate:FindFirstChild("Back")
+			if back and back.CanCollide then
+				remote:InvokeServer("requestPurchaseZone")
+			end
+		end
+	end
 
-                        local success = false
-
-                        for i = 1, 10 do
-                            task.wait(0.5)
-
-                            local newHighest = getHighestUnlockedZone()
-
-                            if newHighest >= nextZone then
-                                success = true
-                                break
-                            end
-                        end
-
-                        if success then
-                            teleportToZone(nextZone)
-                        end
-                    end)
-
-                    task.wait(3)
-                end
-            end)
-        else
-            if zoneThread then
-                task.cancel(zoneThread)
-                zoneThread = nil
-            end
-        end
-    end,
-})	
-
+	if autoTP then
+		local best = getBestZone()
+		if best > 0 then
+			local bestZone = zones:FindFirstChild(tostring(best))
+			if bestZone then
+				local poi = bestZone:FindFirstChild("POI")
+				if poi then
+					local baseplate = poi:FindFirstChild("Baseplate")
+					local spawn = poi:FindFirstChild("PlayerSpawn")
+					if baseplate and spawn then
+						local touching = false
+						for _, part in ipairs(workspace:GetPartsInPart(baseplate)) do
+							if char:IsAncestorOf(part) then
+								touching = true
+								break
+							end
+						end
+						if not touching then
+							hrp.CFrame = spawn.CFrame + Vector3.new(0, 3, 0)
+						end
+					end
+				end
+			end
+		end
+	end
+end)
 
 local autoIndex = false
 local indexThread = nil
@@ -1346,6 +1392,32 @@ local function startAutoHop()
         end
     end)
 end
+
+
+Tab:CreateToggle({
+    Name = "Anti AFK",
+    CurrentValue = false,
+    Flag = "AntiAFK",
+    Callback = function(v)
+        if v then
+            if getconnections then
+                for _, connection in pairs(getconnections(game.Players.LocalPlayer.Idled)) do
+                    if connection.Disable then
+                        connection:Disable()
+                    elseif connection.Disconnect then
+                        connection:Disconnect()
+                    end
+                end
+            else
+                game.Players.LocalPlayer.Idled:Connect(function()
+                    local VirtualUser = game:GetService("VirtualUser")
+                    VirtualUser:CaptureController()
+                    VirtualUser:ClickButton2(Vector2.new())
+                end)
+            end
+        end
+    end,
+})
 
 Misc:CreateSection("Auto Hop")
 
