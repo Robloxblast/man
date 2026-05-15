@@ -89,7 +89,7 @@ local gam = "Dragon Ball Incremental"
 local Dropdown = Tab:CreateDropdown({
    Name = "Choose what script to execute",
    Options = {"Dragon Ball Incremental", "Sorcerer Incremental", "Steal Time", "Highschool Hoops", "Arcade Basketball", "Playground Basketball", "Fisch", 
-   "Elite Basketball", "NBA Champions Basketball", "Hoop Nation", "Murderers VS Sheriffs", ""Slime RNG"},
+   "Elite Basketball", "NBA Champions Basketball", "Hoop Nation", "Murderers VS Sheriffs", "Slime RNG"},
    CurrentOption = {"Dragon Ball Incremental"},
    MultipleOptions = false,
    Flag = "Dropdown1",
