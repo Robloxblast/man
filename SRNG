@@ -376,10 +376,21 @@ local protectedSlimes = {}
 local receiverSlimes = {}
 
 local foods = {
-    "grapes", "apple", "banana", "avocado", "chicken",
-    "cherries", "pizza", "watermelon", "carrot", "broccoli"
+    ["Cheese"] = "apple",
+    ["Egg"] = "carrot",
+    ["Fries"] = "cherries",
+    ["Taco"] = "grapes",
+    ["Hotdog"] = "banana",
+    ["Burger"] = "watermelon",
+    ["Pizza"] = "pizza",
+    ["Chicken"] = "chicken",
+    ["Drumstick"] = "drumstick",
 }
 
+local foodOptions = {}
+for display, _ in pairs(foods) do
+    table.insert(foodOptions, display)
+end
 -- ============================================================
 -- JSON STORAGE
 -- ============================================================
@@ -648,8 +659,8 @@ Tab:CreateButton({
 
 local FoodDropdown = Tab:CreateDropdown({
     Name = "Food",
-    Options = foods,
-    CurrentOption = {"grapes"},
+    Options = foodOptions,
+    CurrentOption = {"Cheese"},
     MultipleOptions = false,
     Flag = "food",
     Callback = function(Option)
@@ -674,7 +685,7 @@ Tab:CreateToggle({
                     local level = tonumber(rawName:match("#(%d+)")) or 1
 
                     pcall(function()
-                        remote:InvokeServer("requestUseFood", foods.selected or "grapes", slimeId, level)
+                        remote:InvokeServer("requestUseFood", foods[foods.selected] or "apple", slimeId, level)
                     end)
                 end
 
