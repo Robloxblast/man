@@ -1,6 +1,6 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 local Window = Rayfield:CreateWindow({
-   Name = "Xarxynth Hub Paid",
+   Name = "Xarxynth Hub Free",
    Icon = 0, -- Icon in Topbar. Can use Lucide Icons (string) or Roblox Image (number). 0 to use no icon (default).
    LoadingTitle = "Loading Script Please Wait...",
    LoadingSubtitle = "by Xarxynth Hub",
@@ -89,7 +89,7 @@ local gam = "Dragon Ball Incremental"
 local Dropdown = Tab:CreateDropdown({
    Name = "Choose what script to execute",
    Options = {"Dragon Ball Incremental", "Sorcerer Incremental", "Steal Time", "Highschool Hoops", "Arcade Basketball", "Playground Basketball", "Fisch", 
-   "Elite Basketball", "NBA Champions Basketball", "Hoop Nation", "Murderers VS Sheriffs", "Slime RNG"},
+   "Elite Basketball", "NBA Champions Basketball", "Hoop Nation", "Murderers VS Sheriffs", ""Slime RNG"},
    CurrentOption = {"Dragon Ball Incremental"},
    MultipleOptions = false,
    Flag = "Dropdown1",
@@ -108,7 +108,7 @@ local Button = Tab:CreateButton({
          elseif gam == "Steal Time" then
          loadstring(game:HttpGet("https://raw.githubusercontent.com/Robloxblast/man/refs/heads/main/Uni%20Steal"))()
          elseif gam == "Highschool Hoops" then
-         loadstring(game:HttpGet("https://raw.githubusercontent.com/Robloxblast/man/refs/heads/main/Hsh%20paid"))()
+         loadstring(game:HttpGet("https://raw.githubusercontent.com/Robloxblast/man/refs/heads/main/Hsh"))()
          elseif gam == "Arcade Basketball" then
          loadstring(game:HttpGet("https://raw.githubusercontent.com/Robloxblast/man/refs/heads/main/arc"))()
          elseif gam == "Playground Basketball" then
