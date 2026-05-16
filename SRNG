@@ -502,6 +502,8 @@ local foods = {
     ["Chicken"]  = "chicken",
     ["Drumstick"]= "drumstick",
 }
+foods.selected = {}
+
 
 local foodOptions = {}
 for display, _ in pairs(foods) do table.insert(foodOptions, display) end
@@ -716,10 +718,10 @@ Tab:CreateButton({
 Tab:CreateDropdown({
     Name = "Food",
     Options = foodOptions,
-    CurrentOption = {"Cheese"},
-    MultipleOptions = false,
+    CurrentOption = {},
+    MultipleOptions = true,
     Flag = "food",
-    Callback = function(Option) foods.selected = Option[1] end,
+Callback = function(Option) foods.selected = Option end,
 })
 
 Tab:CreateToggle({
@@ -735,9 +737,12 @@ Tab:CreateToggle({
                     local rawName = slime.Name
                     local slimeId = rawName:match("^(.-)#") or rawName
                     local level   = tonumber(rawName:match("#(%d+)")) or 1
-                    pcall(function()
-                        invRF:InvokeServer("requestUseFood", foods[foods.selected] or "apple", slimeId, level)
-                    end)
+                    for _, foodDisplay in ipairs(foods.selected or {}) do
+    pcall(function()
+        invRF:InvokeServer("requestUseFood", foods[foodDisplay] or "apple", slimeId, level)
+    end)
+    task.wait(0.3)
+end
                 end
                 task.wait(1)
             end
