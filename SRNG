@@ -1,3 +1,4 @@
+
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 local Window = Rayfield:CreateWindow({
    Name = "Slime RNG",
@@ -1082,7 +1083,7 @@ local autoTP       = false
 
 local function getBestZone()
     local best = 0
-    for i = 1, 28 do
+    for i = 1, 33 do
         local zone = zones:FindFirstChild(tostring(i))
         if not zone then continue end
         local back = zone:FindFirstChild("Gate") and zone.Gate:FindFirstChild("Back")
@@ -1153,7 +1154,7 @@ end)
 
 
 local zoneOptions = {}
-for i = 1, 28 do table.insert(zoneOptions, "Zone " .. i) end
+for i = 1, 33 do table.insert(zoneOptions, "Zone " .. i) end
 
 local selectedZone = "Zone 1"
 
