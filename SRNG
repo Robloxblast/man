@@ -34,7 +34,6 @@ local Window = Rayfield:CreateWindow({
 local Tab = Window:CreateTab("Main", "rewind")
 local Misc = Window:CreateTab("Server Luck", "zap")
 
-
 local autoRoll = false
 local rollThread = nil
 
@@ -71,6 +70,146 @@ Tab:CreateToggle({
     end,
 })
 
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local player = Players.LocalPlayer
+
+-- ========================
+-- REMOTE
+-- ========================
+local Remote = ReplicatedStorage
+    :WaitForChild("Packages")
+    :WaitForChild("_Index")
+    :WaitForChild("leifstout_networker@0.3.1")
+    :WaitForChild("networker")
+    :WaitForChild("_remotes")
+    :WaitForChild("SlimeGunService")
+    :WaitForChild("RemoteFunction")
+
+-- ========================
+-- KILL AURA LOGIC
+-- ========================
+local killAura = false
+local killAuraThread = nil
+local killAuraRange = 100
+local killAuraDelay = 0.1
+
+local function getEnemiesFolder()
+    -- loop workspace children, find whichever has Enemies directly
+    for _, v in ipairs(workspace:GetChildren()) do
+        local enemies = v:FindFirstChild("Enemies")
+        if enemies then
+            return enemies
+        end
+    end
+    return nil
+end
+
+local function getEnemies()
+    local enemies = {}
+    local enemiesFolder = getEnemiesFolder()
+    if not enemiesFolder then return enemies end
+
+    local char = player.Character
+    local myHRP = char and char:FindFirstChild("HumanoidRootPart")
+
+    for _, enemy in ipairs(enemiesFolder:GetChildren()) do
+        if myHRP then
+            local ok, pos = pcall(function()
+                return enemy:GetPivot().Position
+            end)
+            if ok then
+                local dist = (pos - myHRP.Position).Magnitude
+                if dist <= killAuraRange then
+                    table.insert(enemies, enemy)
+                end
+            else
+                table.insert(enemies, enemy)
+            end
+        else
+            table.insert(enemies, enemy)
+        end
+    end
+    return enemies
+end
+
+local function startKillAura()
+    killAuraThread = task.spawn(function()
+        while killAura do
+            local enemies = getEnemies()
+
+            if #enemies > 0 then
+                for _, enemy in ipairs(enemies) do
+                    if not killAura then break end
+                    task.spawn(function()
+                        pcall(function()
+                            Remote:InvokeServer("tryFireSlimeGun", tonumber(enemy.Name))
+                        end)
+                    end)
+                end
+            end
+
+            task.wait(killAuraDelay)
+        end
+    end)
+end
+
+Tab:CreateSection("Auto Shoot Slime Aura")
+
+Tab:CreateToggle({
+    Name = "Auto Shoot Slime Aura Aura",
+    CurrentValue = false,
+    Flag = "KillAura",
+    Callback = function(value)
+        killAura = value
+        if value then
+            startKillAura()
+            Rayfield:Notify({
+                Title = "Kill Aura",
+                Content = "Kill Aura enabled!",
+                Duration = 3,
+                Image = 4483362458,
+            })
+        else
+            killAuraThread = nil
+            Rayfield:Notify({
+                Title = "Kill Aura",
+                Content = "Kill Aura disabled.",
+                Duration = 3,
+                Image = 4483362458,
+            })
+        end
+    end,
+})
+
+Tab:CreateSlider({
+    Name = "Aura Range",
+    Range = {10, 500},
+    Increment = 10,
+    Suffix = " studs",
+    CurrentValue = killAuraRange,
+    Flag = "KillAuraRange",
+    Callback = function(value)
+        killAuraRange = value
+    end,
+})
+
+Tab:CreateSlider({
+    Name = "Fire Delay",
+    Range = {0.0001, 1},
+    Increment = 0.0001,
+    Suffix = "s",
+    CurrentValue = killAuraDelay,
+    Flag = "KillAuraDelay",
+    Callback = function(value)
+        killAuraDelay = value
+    end,
+})
+
+
 local lootNames = {
     "Root", "cherries", "pizza", "apple", "carrot", "drumstick",
     "chicken", "watermelon", "banana", "avocado", "broccoli",
@@ -106,6 +245,12 @@ local function collectLoot()
     local lootFolder = workspace:FindFirstChild("Loot")
     if not lootFolder then return end
 
+    local char = plr.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    local originalCFrame = hrp.CFrame
+
     for _, child in ipairs(lootFolder:GetChildren()) do
         for _, item in ipairs(child:GetDescendants()) do
             if lootSet[item.Name:lower()] then
@@ -118,22 +263,57 @@ local function collectLoot()
                     end
                 end
 
-                local attachment = item:FindFirstChild("Attachment")
-                    or item:FindFirstChild("attachment")
-
-                if attachment and attachment:IsA("Attachment") then
-                    local prompt = attachment:FindFirstChildOfClass("ProximityPrompt")
-                    triggerPrompt(prompt)
+                -- handle attachments with proximity prompts
+                local function handleAttachment(att)
+                    if not att then return end
+                    local prompt = att:FindFirstChildOfClass("ProximityPrompt")
+                    if prompt then
+                        -- tp to the attachment world position
+                        local worldPos = att.WorldPosition
+                        hrp.CFrame = CFrame.new(worldPos + Vector3.new(0, 3, 0))
+                        task.wait(0.05)
+                        fireproximityprompt(prompt)
+                        task.wait(0.05)
+                        -- tp back
+                        hrp.CFrame = originalCFrame
+                    end
                 end
 
+                -- check direct attachment children
+                local attachment = item:FindFirstChild("Attachment")
+                    or item:FindFirstChild("attachment")
+                handleAttachment(attachment)
+
+                -- check if item itself is an attachment
                 if item:IsA("Attachment") then
                     local prompt = item:FindFirstChildOfClass("ProximityPrompt")
-                    triggerPrompt(prompt)
+                    if prompt then
+                        local worldPos = item.WorldPosition
+                        hrp.CFrame = CFrame.new(worldPos + Vector3.new(0, 3, 0))
+                        task.wait(0.05)
+                        fireproximityprompt(prompt)
+                        task.wait(0.05)
+                        hrp.CFrame = originalCFrame
+                    end
+                end
+
+                -- check if item is a BasePart with proximity prompt directly
+                if item:IsA("BasePart") then
+                    local prompt = item:FindFirstChildOfClass("ProximityPrompt")
+                    if prompt then
+                        hrp.CFrame = CFrame.new(item.Position + Vector3.new(0, 3, 0))
+                        task.wait(0.05)
+                        fireproximityprompt(prompt)
+                        task.wait(0.05)
+                        hrp.CFrame = originalCFrame
+                    end
                 end
             end
         end
     end
 end
+
+local Paragraph = Tab:CreateParagraph({Title = "Auto Collect", Content = "The auto collect already auto collects the power fruits"})
 
 local Toggle = Tab:CreateToggle({
     Name = "Auto Collect Loot",
@@ -336,7 +516,14 @@ local groups = {
 		"playerTree","backpack","autoRoll","fruits",
 		"offlineLootAmount1","offlineLootAmount2","offlineLootAmount3","offlineLootAmount4","offlineLootAmount5",
 		"overkill1","overkill2","overkill3","overkill4","overkill5","overkill6"
-	}
+	},
+
+	["Gun Group"] = {
+		"slimeGunDamage1","slimeGunFireRate1","slimeGunFireRate2","slimeGunFireRate3",
+		"slimeGunLoot","slimeGunMarkBlitz1","slimeGunMarkBlitz2","slimeGunMarkFury",
+		"slimeGunRange1","slimeGunRange2","slimeGunRange3","slimeGunRange4","slimeGunRange5",
+		"slimeGun","slimeTargetRange1","slimeTargetRange2","slimeTargetRange3"
+	},
 }
 
 local selectedGroups = {}
@@ -354,7 +541,8 @@ Tab:CreateDropdown({
 		"Slime Group",
 		"Slot Group",
 		"Void Group",
-		"Misc Group"
+		"Misc Group",
+		"Gun Group",
 	},
 	CurrentOption = {"Coin Group"},
 	MultipleOptions = true,
