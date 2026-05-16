@@ -20,44 +20,80 @@ local Window = Rayfield:CreateWindow({
       RememberJoins = true
    },
    KeySystem = false,
-   KeySettings = {
-      Title = "Untitled",
-      Subtitle = "Key System",
-      Note = "No method of obtaining the key is provided",
-      FileName = "Key",
-      SaveKey = true,
-      GrabKeyFromSite = false,
-      Key = {"Hello"}
-   }
 })
 
-local Tab = Window:CreateTab("Main", "rewind")
+-- ============================================================
+-- SERVICES
+-- ============================================================
+
+local Players        = game:GetService("Players")
+local RunService     = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TeleportService = game:GetService("TeleportService")
+local HttpService    = game:GetService("HttpService")
+
+local player = Players.LocalPlayer
+local user   = player -- alias used in slime system
+
+-- ============================================================
+-- NETWORKER BASE PATH
+-- ============================================================
+
+local networker = ReplicatedStorage
+    :WaitForChild("Packages")
+    :WaitForChild("_Index")
+    :WaitForChild("leifstout_networker@0.3.1")
+    :WaitForChild("networker")
+    :WaitForChild("_remotes")
+
+local function getRemote(service)
+    return networker:WaitForChild(service):WaitForChild("RemoteFunction")
+end
+
+local function getRemoteEvent(service)
+    return networker:WaitForChild(service):WaitForChild("RemoteEvent")
+end
+
+-- ============================================================
+-- REMOTES
+-- ============================================================
+
+local RollRF      = getRemote("RollService")
+local SlimeGunRF  = getRemote("SlimeGunService")
+local invRF       = getRemote("InventoryService")
+local xpRF        = getRemote("XpTransferService")
+local boostRF     = getRemote("BoostService")
+local rebirthRF   = getRemote("RebirthService")
+local upgradeRF   = getRemote("UpgradeService")
+local zonesRF     = getRemote("ZonesService")
+local indexRF     = getRemote("IndexService")
+local settingsRE  = getRemoteEvent("SettingsService")
+
+-- ============================================================
+-- TABS
+-- ============================================================
+
+local Tab  = Window:CreateTab("Main", "rewind")
 local Misc = Window:CreateTab("Server Luck", "zap")
+
+-- ============================================================
+-- AUTO ROLL
+-- ============================================================
 
 local autoRoll = false
 local rollThread = nil
+local AutoRollToggle -- forward declare so scanner can toggle it
 
-Tab:CreateToggle({
+AutoRollToggle = Tab:CreateToggle({
     Name = "Auto Roll",
     CurrentValue = false,
     Flag = "AutoRoll",
     Callback = function(v)
         autoRoll = v
-
         if v then
             rollThread = task.spawn(function()
                 while autoRoll do
-                    pcall(function()
-                        game:GetService("ReplicatedStorage")
-                            :WaitForChild("Packages")
-                            :WaitForChild("_Index")
-                            :WaitForChild("leifstout_networker@0.3.1")
-                            :WaitForChild("networker")
-                            :WaitForChild("_remotes")
-                            :WaitForChild("RollService")
-                            :WaitForChild("RemoteFunction")
-                            :InvokeServer("requestRoll")
-                    end)
+                    pcall(function() RollRF:InvokeServer("requestRoll") end)
                     task.wait(0.1)
                 end
             end)
@@ -70,40 +106,19 @@ Tab:CreateToggle({
     end,
 })
 
+-- ============================================================
+-- KILL AURA
+-- ============================================================
 
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
-local player = Players.LocalPlayer
-
--- ========================
--- REMOTE
--- ========================
-local Remote = ReplicatedStorage
-    :WaitForChild("Packages")
-    :WaitForChild("_Index")
-    :WaitForChild("leifstout_networker@0.3.1")
-    :WaitForChild("networker")
-    :WaitForChild("_remotes")
-    :WaitForChild("SlimeGunService")
-    :WaitForChild("RemoteFunction")
-
--- ========================
--- KILL AURA LOGIC
--- ========================
-local killAura = false
+local killAura      = false
 local killAuraThread = nil
 local killAuraRange = 100
 local killAuraDelay = 0.1
 
 local function getEnemiesFolder()
-    -- loop workspace children, find whichever has Enemies directly
     for _, v in ipairs(workspace:GetChildren()) do
-        local enemies = v:FindFirstChild("Enemies")
-        if enemies then
-            return enemies
-        end
+        local e = v:FindFirstChild("Enemies")
+        if e then return e end
     end
     return nil
 end
@@ -113,20 +128,15 @@ local function getEnemies()
     local enemiesFolder = getEnemiesFolder()
     if not enemiesFolder then return enemies end
 
-    local char = player.Character
+    local char  = player.Character
     local myHRP = char and char:FindFirstChild("HumanoidRootPart")
 
     for _, enemy in ipairs(enemiesFolder:GetChildren()) do
         if myHRP then
-            local ok, pos = pcall(function()
-                return enemy:GetPivot().Position
-            end)
-            if ok then
-                local dist = (pos - myHRP.Position).Magnitude
-                if dist <= killAuraRange then
-                    table.insert(enemies, enemy)
-                end
-            else
+            local ok, pos = pcall(function() return enemy:GetPivot().Position end)
+            if ok and (pos - myHRP.Position).Magnitude <= killAuraRange then
+                table.insert(enemies, enemy)
+            elseif not ok then
                 table.insert(enemies, enemy)
             end
         else
@@ -140,18 +150,16 @@ local function startKillAura()
     killAuraThread = task.spawn(function()
         while killAura do
             local enemies = getEnemies()
-
             if #enemies > 0 then
                 for _, enemy in ipairs(enemies) do
                     if not killAura then break end
                     task.spawn(function()
                         pcall(function()
-                            Remote:InvokeServer("tryFireSlimeGun", tonumber(enemy.Name))
+                            SlimeGunRF:InvokeServer("tryFireSlimeGun", tonumber(enemy.Name))
                         end)
                     end)
                 end
             end
-
             task.wait(killAuraDelay)
         end
     end)
@@ -160,27 +168,17 @@ end
 Tab:CreateSection("Auto Shoot Slime Aura")
 
 Tab:CreateToggle({
-    Name = "Auto Shoot Slime Aura Aura",
+    Name = "Auto Shoot Slime Aura",
     CurrentValue = false,
     Flag = "KillAura",
     Callback = function(value)
         killAura = value
         if value then
             startKillAura()
-            Rayfield:Notify({
-                Title = "Kill Aura",
-                Content = "Kill Aura enabled!",
-                Duration = 3,
-                Image = 4483362458,
-            })
+            Rayfield:Notify({ Title = "Kill Aura", Content = "Kill Aura enabled!", Duration = 3, Image = 4483362458 })
         else
             killAuraThread = nil
-            Rayfield:Notify({
-                Title = "Kill Aura",
-                Content = "Kill Aura disabled.",
-                Duration = 3,
-                Image = 4483362458,
-            })
+            Rayfield:Notify({ Title = "Kill Aura", Content = "Kill Aura disabled.", Duration = 3, Image = 4483362458 })
         end
     end,
 })
@@ -192,9 +190,7 @@ Tab:CreateSlider({
     Suffix = " studs",
     CurrentValue = killAuraRange,
     Flag = "KillAuraRange",
-    Callback = function(value)
-        killAuraRange = value
-    end,
+    Callback = function(value) killAuraRange = value end,
 })
 
 Tab:CreateSlider({
@@ -204,11 +200,12 @@ Tab:CreateSlider({
     Suffix = "s",
     CurrentValue = killAuraDelay,
     Flag = "KillAuraDelay",
-    Callback = function(value)
-        killAuraDelay = value
-    end,
+    Callback = function(value) killAuraDelay = value end,
 })
 
+-- ============================================================
+-- AUTO COLLECT LOOT
+-- ============================================================
 
 local lootNames = {
     "Root", "cherries", "pizza", "apple", "carrot", "drumstick",
@@ -218,25 +215,14 @@ local lootNames = {
 }
 
 local lootSet = {}
-for _, name in ipairs(lootNames) do
-    lootSet[name:lower()] = true
-end
+for _, name in ipairs(lootNames) do lootSet[name:lower()] = true end
 
-local collecting = false
+local collecting    = false
 local collectThread = nil
 
-local plr = game.Players.LocalPlayer
-
-local function triggerPrompt(prompt)
-    if prompt and prompt:IsA("ProximityPrompt") then
-        fireproximityprompt(prompt)
-    end
-end
-
 local function touchPart(part)
-    local hrp = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
+    local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
-
     firetouchinterest(hrp, part, 0)
     firetouchinterest(hrp, part, 1)
 end
@@ -245,8 +231,8 @@ local function collectLoot()
     local lootFolder = workspace:FindFirstChild("Loot")
     if not lootFolder then return end
 
-    local char = plr.Character
-    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    local char = player.Character
+    local hrp  = char and char:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
 
     local originalCFrame = hrp.CFrame
@@ -254,74 +240,55 @@ local function collectLoot()
     for _, child in ipairs(lootFolder:GetChildren()) do
         for _, item in ipairs(child:GetDescendants()) do
             if lootSet[item.Name:lower()] then
+                -- touch interest
                 if item:IsA("BasePart") then
-                    local touchInterest = item:FindFirstChildOfClass("TouchTransmitter")
-                        or item:FindFirstChild("TouchInterest")
-
-                    if touchInterest then
-                        touchPart(item)
-                    end
+                    local ti = item:FindFirstChildOfClass("TouchTransmitter") or item:FindFirstChild("TouchInterest")
+                    if ti then touchPart(item) end
                 end
 
-                -- handle attachments with proximity prompts
-                local function handleAttachment(att)
-                    if not att then return end
-                    local prompt = att:FindFirstChildOfClass("ProximityPrompt")
-                    if prompt then
-                        -- tp to the attachment world position
-                        local worldPos = att.WorldPosition
+                local function handlePrompt(prompt)
+                    if not prompt or not prompt:IsA("ProximityPrompt") then return end
+                    local worldPos
+                    if item:IsA("Attachment") then
+                        worldPos = item.WorldPosition
+                    elseif item:IsA("BasePart") then
+                        worldPos = item.Position
+                    end
+                    if worldPos then
                         hrp.CFrame = CFrame.new(worldPos + Vector3.new(0, 3, 0))
                         task.wait(0.05)
                         fireproximityprompt(prompt)
                         task.wait(0.05)
-                        -- tp back
                         hrp.CFrame = originalCFrame
                     end
                 end
 
-                -- check direct attachment children
-                local attachment = item:FindFirstChild("Attachment")
-                    or item:FindFirstChild("attachment")
-                handleAttachment(attachment)
+                -- attachment child
+                local att = item:FindFirstChild("Attachment") or item:FindFirstChild("attachment")
+                if att then handlePrompt(att:FindFirstChildOfClass("ProximityPrompt")) end
 
-                -- check if item itself is an attachment
+                -- item is attachment
                 if item:IsA("Attachment") then
-                    local prompt = item:FindFirstChildOfClass("ProximityPrompt")
-                    if prompt then
-                        local worldPos = item.WorldPosition
-                        hrp.CFrame = CFrame.new(worldPos + Vector3.new(0, 3, 0))
-                        task.wait(0.05)
-                        fireproximityprompt(prompt)
-                        task.wait(0.05)
-                        hrp.CFrame = originalCFrame
-                    end
+                    handlePrompt(item:FindFirstChildOfClass("ProximityPrompt"))
                 end
 
-                -- check if item is a BasePart with proximity prompt directly
+                -- item is basepart with prompt
                 if item:IsA("BasePart") then
-                    local prompt = item:FindFirstChildOfClass("ProximityPrompt")
-                    if prompt then
-                        hrp.CFrame = CFrame.new(item.Position + Vector3.new(0, 3, 0))
-                        task.wait(0.05)
-                        fireproximityprompt(prompt)
-                        task.wait(0.05)
-                        hrp.CFrame = originalCFrame
-                    end
+                    handlePrompt(item:FindFirstChildOfClass("ProximityPrompt"))
                 end
             end
         end
     end
 end
 
-local Paragraph = Tab:CreateParagraph({Title = "Auto Collect", Content = "The auto collect already auto collects the power fruits"})
+Tab:CreateParagraph({ Title = "Auto Collect", Content = "The auto collect already auto collects the power fruits" })
 
-local Toggle = Tab:CreateToggle({
+Tab:CreateToggle({
     Name = "Auto Collect Loot",
     CurrentValue = false,
     Flag = "AutoCollectLoot",
     Callback = function(Value)
         collecting = Value
-
         if collecting then
             collectThread = task.spawn(function()
                 while collecting do
@@ -338,29 +305,18 @@ local Toggle = Tab:CreateToggle({
     end,
 })
 
+-- ============================================================
+-- AUTO USE ITEMS
+-- ============================================================
 
-local rs = game:GetService("ReplicatedStorage")
-local user = game:GetService("Players").LocalPlayer
-
-local remote = rs:WaitForChild("Packages")
-    :WaitForChild("_Index")
-    :WaitForChild("leifstout_networker@0.3.1")
-    :WaitForChild("networker")
-    :WaitForChild("_remotes")
-    :WaitForChild("InventoryService")
-    :WaitForChild("RemoteFunction")
-
-local invRF = rs:WaitForChild("Packages"):WaitForChild("_Index"):WaitForChild("leifstout_networker@0.3.1"):WaitForChild("networker"):WaitForChild("_remotes"):WaitForChild("InventoryService"):WaitForChild("RemoteFunction")
-local xpRF = rs:WaitForChild("Packages"):WaitForChild("_Index"):WaitForChild("leifstout_networker@0.3.1"):WaitForChild("networker"):WaitForChild("_remotes"):WaitForChild("XpTransferService"):WaitForChild("RemoteFunction")
-local boostRF = rs:WaitForChild("Packages"):WaitForChild("_Index"):WaitForChild("leifstout_networker@0.3.1"):WaitForChild("networker"):WaitForChild("_remotes"):WaitForChild("BoostService"):WaitForChild("RemoteFunction")
 local boostItems = {
     "ultraLuck", "rollspeed", "currency", "luck",
     "bigDice", "hugeDice", "invertedDice", "shinyDice", "jackpotDice"
 }
 
 local selectedBoosts = {}
-local autoBoost = false
-local boostThread = nil
+local autoBoost      = false
+local boostThread    = nil
 
 Tab:CreateSection("Auto Use Items")
 
@@ -370,9 +326,7 @@ Tab:CreateDropdown({
     CurrentOption = {},
     MultipleOptions = true,
     Flag = "BoostItems",
-    Callback = function(Option)
-        selectedBoosts = Option
-    end,
+    Callback = function(Option) selectedBoosts = Option end,
 })
 
 Tab:CreateToggle({
@@ -381,295 +335,202 @@ Tab:CreateToggle({
     Flag = "AutoUseItems",
     Callback = function(v)
         autoBoost = v
-
         if v then
             boostThread = task.spawn(function()
                 while autoBoost do
-                    if #selectedBoosts == 0 then
-                        task.wait(1)
-                        continue
-                    end
+                    if #selectedBoosts == 0 then task.wait(1) continue end
                     for _, item in ipairs(selectedBoosts) do
-                        pcall(function()
-                            boostRF:InvokeServer("requestUseBoost", item)
-                        end)
+                        pcall(function() boostRF:InvokeServer("requestUseBoost", item) end)
                         task.wait(0.3)
                     end
                     task.wait(1)
                 end
             end)
         else
-            if boostThread then
-                task.cancel(boostThread)
-                boostThread = nil
-            end
+            if boostThread then task.cancel(boostThread) boostThread = nil end
         end
     end,
 })
 
-local rebirth = false
+-- ============================================================
+-- AUTO REBIRTH
+-- ============================================================
+
+local rebirth       = false
 local rebirthThread = nil
 
-local Toggle = Tab:CreateToggle({
+Tab:CreateToggle({
     Name = "Auto Rebirth",
     CurrentValue = false,
     Flag = "AutoRebirth",
     Callback = function(Value)
         rebirth = Value
-
         if rebirth then
             rebirthThread = task.spawn(function()
                 while rebirth do
-                    pcall(function()
-                        local args = {
-                            "requestRebirth"
-                        }
-
-                        game:GetService("ReplicatedStorage")
-                            :WaitForChild("Packages")
-                            :WaitForChild("_Index")
-                            :WaitForChild("leifstout_networker@0.3.1")
-                            :WaitForChild("networker")
-                            :WaitForChild("_remotes")
-                            :WaitForChild("RebirthService")
-                            :WaitForChild("RemoteFunction")
-                            :InvokeServer(unpack(args))
-                    end)
-
+                    pcall(function() rebirthRF:InvokeServer("requestRebirth") end)
                     task.wait(1)
                 end
             end)
         else
-            if rebirthThread then
-                task.cancel(rebirthThread)
-                rebirthThread = nil
-            end
+            if rebirthThread then task.cancel(rebirthThread) rebirthThread = nil end
         end
     end,
 })
 
-
-local rf = game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("_Index"):WaitForChild("leifstout_networker@0.3.1"):WaitForChild("networker"):WaitForChild("_remotes"):WaitForChild("UpgradeService"):WaitForChild("RemoteFunction")
+-- ============================================================
+-- AUTO UNLOCK
+-- ============================================================
 
 local function unlock(v)
-	rf:InvokeServer("requestUnlock", v)
+    upgradeRF:InvokeServer("requestUnlock", v)
 end
 
 local groups = {
-	["Coin Group"] = {
-		"coinIncome1","coinIncome2","coinIncome3","coinIncome4","coinIncome5",
-		"coinIncome6","coinIncome7","coinIncome8","coinIncome9","coinIncome10",
-		"coinIncome11","coinIncome12","coinIncome13","lootCurrency"
-	},
-
-	["Luck Group"] = {
-		"luck1","luck2","luck3","luck4","luck5","luck6","luck7","luck8",
-		"luck9","luck10","luck11","luck12","luck13","luck14","luck15","lootLuck"
-	},
-
-	["Roll Group"] = {
-		"rollSpeed1","rollSpeed2","rollSpeed3","rollSpeed4","rollSpeed5","rollSpeed6",
-		"bonusRolls1","bonusRolls2","bonusRolls3",
-		"extraRollChance1","extraRollChance2","extraRollChance3",
-		"diamondRolls","diamondRolls2","diamondRolls3","diamondRolls4",
-		"goldenRolls","goldenRolls2","goldenRolls3","goldenRolls4"
-	},
-
-	["Loot Group"] = {
-		"lootTree","lootWatermelon","lootDrumstick","lootChicken","lootPizza",
-		"lootApple","lootBanana","lootGrapes","lootCarrot","lootCherries",
-		"lootRollSpeed","lootUltraLuck"
-	},
-
-	["Enemy Group"] = {
-		"enemyCount2","enemyCount3","enemyCount4","enemyCount5","enemyCount6","enemyCount7",
-		"enemySpawnSpeed1","enemySpawnSpeed2","enemySpawnSpeed3",
-		"bigEnemies","hugeEnemies","hugeEnemyChance1",
-		"invertedEnemies","invertedEnemyChance1",
-		"shinyEnemies","shinyEnemyChance1"
-	},
-
-	["Friend Group"] = {
-		"friendLuck1","friendLuck2","friendLuck3","friendLuck4","friendLuck5","friendLuck6",
-		"friendLuckBoost1","friendLuckBoost2","friendLuckBoost3","friendLuckBoost4"
-	},
-
-	["Goop Group"] = {
-		"goop","goopDropRate1","goopDropRate2","goopDropRate3",
-		"goopDropRate4","goopDropRate5","goopDropRate6"
-	},
-
-	["Slime Group"] = {
-		"slimeTargetRange1","slimeTargetRange2","slimeTargetRange3",
-		"bigSlimes","hugeSlimes","shinySlimes","invertedSlimes"
-	},
-
-	["Slot Group"] = {
-		"slots2","slots3","slots4","slots5","slots6"
-	},
-
-	["Void Group"] = {
-		"voidRolls","voidRolls2","voidRolls3","voidRolls4"
-	},
-
-	["Misc Group"] = {
-		"playerTree","backpack","autoRoll","fruits",
-		"offlineLootAmount1","offlineLootAmount2","offlineLootAmount3","offlineLootAmount4","offlineLootAmount5",
-		"overkill1","overkill2","overkill3","overkill4","overkill5","overkill6"
-	},
-
-	["Gun Group"] = {
-		"slimeGunDamage1","slimeGunFireRate1","slimeGunFireRate2","slimeGunFireRate3",
-		"slimeGunLoot","slimeGunMarkBlitz1","slimeGunMarkBlitz2","slimeGunMarkFury",
-		"slimeGunRange1","slimeGunRange2","slimeGunRange3","slimeGunRange4","slimeGunRange5",
-		"slimeGun","slimeTargetRange1","slimeTargetRange2","slimeTargetRange3"
-	},
+    ["Coin Group"] = {
+        "coinIncome1","coinIncome2","coinIncome3","coinIncome4","coinIncome5",
+        "coinIncome6","coinIncome7","coinIncome8","coinIncome9","coinIncome10",
+        "coinIncome11","coinIncome12","coinIncome13","lootCurrency"
+    },
+    ["Luck Group"] = {
+        "luck1","luck2","luck3","luck4","luck5","luck6","luck7","luck8",
+        "luck9","luck10","luck11","luck12","luck13","luck14","luck15","lootLuck"
+    },
+    ["Roll Group"] = {
+        "rollSpeed1","rollSpeed2","rollSpeed3","rollSpeed4","rollSpeed5","rollSpeed6",
+        "bonusRolls1","bonusRolls2","bonusRolls3",
+        "extraRollChance1","extraRollChance2","extraRollChance3",
+        "diamondRolls","diamondRolls2","diamondRolls3","diamondRolls4",
+        "goldenRolls","goldenRolls2","goldenRolls3","goldenRolls4"
+    },
+    ["Loot Group"] = {
+        "lootTree","lootWatermelon","lootDrumstick","lootChicken","lootPizza",
+        "lootApple","lootBanana","lootGrapes","lootCarrot","lootCherries",
+        "lootRollSpeed","lootUltraLuck"
+    },
+    ["Enemy Group"] = {
+        "enemyCount2","enemyCount3","enemyCount4","enemyCount5","enemyCount6","enemyCount7",
+        "enemySpawnSpeed1","enemySpawnSpeed2","enemySpawnSpeed3",
+        "bigEnemies","hugeEnemies","hugeEnemyChance1",
+        "invertedEnemies","invertedEnemyChance1",
+        "shinyEnemies","shinyEnemyChance1"
+    },
+    ["Friend Group"] = {
+        "friendLuck1","friendLuck2","friendLuck3","friendLuck4","friendLuck5","friendLuck6",
+        "friendLuckBoost1","friendLuckBoost2","friendLuckBoost3","friendLuckBoost4"
+    },
+    ["Goop Group"] = {
+        "goop","goopDropRate1","goopDropRate2","goopDropRate3",
+        "goopDropRate4","goopDropRate5","goopDropRate6"
+    },
+    ["Slime Group"] = {
+        "slimeTargetRange1","slimeTargetRange2","slimeTargetRange3",
+        "bigSlimes","hugeSlimes","shinySlimes","invertedSlimes"
+    },
+    ["Slot Group"] = { "slots2","slots3","slots4","slots5","slots6" },
+    ["Void Group"] = { "voidRolls","voidRolls2","voidRolls3","voidRolls4" },
+    ["Misc Group"] = {
+        "playerTree","backpack","autoRoll","fruits",
+        "offlineLootAmount1","offlineLootAmount2","offlineLootAmount3","offlineLootAmount4","offlineLootAmount5",
+        "overkill1","overkill2","overkill3","overkill4","overkill5","overkill6"
+    },
+    ["Gun Group"] = {
+        "slimeGunDamage1","slimeGunFireRate1","slimeGunFireRate2","slimeGunFireRate3",
+        "slimeGunLoot","slimeGunMarkBlitz1","slimeGunMarkBlitz2","slimeGunMarkFury",
+        "slimeGunRange1","slimeGunRange2","slimeGunRange3","slimeGunRange4","slimeGunRange5",
+        "slimeGun","slimeTargetRange1","slimeTargetRange2","slimeTargetRange3"
+    },
 }
 
 local selectedGroups = {}
 
 Tab:CreateDropdown({
-	Name = "Upgrade Groups",
-	Options = {
-		"Coin Group",
-		"Luck Group",
-		"Roll Group",
-		"Loot Group",
-		"Enemy Group",
-		"Friend Group",
-		"Goop Group",
-		"Slime Group",
-		"Slot Group",
-		"Void Group",
-		"Misc Group",
-		"Gun Group",
-	},
-	CurrentOption = {"Coin Group"},
-	MultipleOptions = true,
-	Flag = "UpgradeGroups",
-	Callback = function(opt)
-		selectedGroups = opt
-	end
+    Name = "Upgrade Groups",
+    Options = {
+        "Coin Group","Luck Group","Roll Group","Loot Group","Enemy Group",
+        "Friend Group","Goop Group","Slime Group","Slot Group","Void Group",
+        "Misc Group","Gun Group",
+    },
+    CurrentOption = {"Coin Group"},
+    MultipleOptions = true,
+    Flag = "UpgradeGroups",
+    Callback = function(opt) selectedGroups = opt end,
 })
 
 Tab:CreateToggle({
-	Name = "Auto Unlock",
-	CurrentValue = false,
-	Flag = "AutoUnlock",
-	Callback = function(state)
-		getgenv().autoUnlock = state
-
-		while getgenv().autoUnlock do
-			for _, groupName in ipairs(selectedGroups) do
-				local upgrades = groups[groupName]
-
-				if upgrades then
-					for _, upgrade in ipairs(upgrades) do
-						pcall(function()
-							unlock(upgrade)
-						end)
-
-						task.wait(0.05)
-					end
-				end
-			end
-
-			task.wait(0.3)
-		end
-	end
+    Name = "Auto Unlock",
+    CurrentValue = false,
+    Flag = "AutoUnlock",
+    Callback = function(state)
+        getgenv().autoUnlock = state
+        while getgenv().autoUnlock do
+            for _, groupName in ipairs(selectedGroups) do
+                local upgrades = groups[groupName]
+                if upgrades then
+                    for _, upgrade in ipairs(upgrades) do
+                        pcall(function() unlock(upgrade) end)
+                        task.wait(0.05)
+                    end
+                end
+            end
+            task.wait(0.3)
+        end
+    end,
 })
 
-local rs = game:GetService("ReplicatedStorage")
-local user = game:GetService("Players").LocalPlayer
+-- ============================================================
+-- SLIME SYSTEM
+-- ============================================================
 
-local remote = rs:WaitForChild("Packages")
-    :WaitForChild("_Index")
-    :WaitForChild("leifstout_networker@0.3.1")
-    :WaitForChild("networker")
-    :WaitForChild("_remotes")
-    :WaitForChild("InventoryService")
-    :WaitForChild("RemoteFunction")
-
-local slimeMap = {}
+local slimeMap      = {}
 local selectedSlime = nil
-local autoFeed = false
-local scanning = false
-local autoXP = false
-local xpThread = nil
-
+local autoFeed      = false
+local scanning      = false
+local autoXP        = false
+local xpThread      = nil
 local protectedSlimes = {}
-local receiverSlimes = {}
+local receiverSlimes  = {}
 
 local foods = {
-    ["Cheese"] = "apple",
-    ["Egg"] = "carrot",
-    ["Fries"] = "cherries",
-    ["Taco"] = "grapes",
-    ["Hotdog"] = "banana",
-    ["Burger"] = "watermelon",
-    ["Pizza"] = "pizza",
-    ["Chicken"] = "chicken",
-    ["Drumstick"] = "drumstick",
+    ["Cheese"]   = "apple",
+    ["Egg"]      = "carrot",
+    ["Fries"]    = "cherries",
+    ["Taco"]     = "grapes",
+    ["Hotdog"]   = "banana",
+    ["Burger"]   = "watermelon",
+    ["Pizza"]    = "pizza",
+    ["Chicken"]  = "chicken",
+    ["Drumstick"]= "drumstick",
 }
 
 local foodOptions = {}
-for display, _ in pairs(foods) do
-    table.insert(foodOptions, display)
-end
--- ============================================================
--- JSON STORAGE
--- ============================================================
+for display, _ in pairs(foods) do table.insert(foodOptions, display) end
 
 local saveFile = user.Name .. "_slimemap.json"
 
 local function saveSlimeMap()
     local data = {}
-    for display, id in pairs(slimeMap) do
-        data[display] = id
-    end
-    pcall(function()
-        writefile(saveFile, game:GetService("HttpService"):JSONEncode(data))
-    end)
+    for display, id in pairs(slimeMap) do data[display] = id end
+    pcall(function() writefile(saveFile, HttpService:JSONEncode(data)) end)
 end
 
 local function loadSlimeMap()
     local ok, content = pcall(readfile, saveFile)
     if not ok or not content or content == "" then return end
-    local ok2, data = pcall(function()
-        return game:GetService("HttpService"):JSONDecode(content)
-    end)
+    local ok2, data = pcall(function() return HttpService:JSONDecode(content) end)
     if ok2 and type(data) == "table" then
-        for display, id in pairs(data) do
-            slimeMap[display] = id
-        end
+        for display, id in pairs(data) do slimeMap[display] = id end
     end
 end
 
--- ============================================================
--- HELPERS
--- ============================================================
-
-local function unequipSlot(slot)
-    invRF:InvokeServer("requestUnequip", slot)
-end
-
-local function equipSlime(id)
-    invRF:InvokeServer("requestEquip", id)
-end
-
-local function unequipSlime(id)
-    invRF:InvokeServer("requestUnequip", id)
-end
-
-local function equipBest()
-    invRF:InvokeServer("requestEquipBest")
-end
+local function unequipSlot(slot)  invRF:InvokeServer("requestUnequip", slot) end
+local function equipSlime(id)     invRF:InvokeServer("requestEquip", id) end
+local function unequipSlime(id)   invRF:InvokeServer("requestUnequip", id) end
+local function equipBest()        invRF:InvokeServer("requestEquipBest") end
 
 local function getSlimesFolder()
     for _, v in pairs(workspace:GetChildren()) do
-        if v:FindFirstChild("Slimes") then
-            return v.Slimes
-        end
+        if v:FindFirstChild("Slimes") then return v.Slimes end
     end
 end
 
@@ -685,14 +546,8 @@ end
 local function resolveGUID(guid)
     equipSlime(guid)
     task.wait(0.8)
-
     local slimesFolder = getSlimesFolder()
-    if not slimesFolder then
-        unequipSlime(guid)
-        task.wait(0.3)
-        return nil
-    end
-
+    if not slimesFolder then unequipSlime(guid) task.wait(0.3) return nil end
     local displayName = nil
     for _, obj in ipairs(slimesFolder:GetChildren()) do
         if obj.Name:sub(1, #guid) == guid then
@@ -701,15 +556,12 @@ local function resolveGUID(guid)
                 local content = billboard:FindFirstChild("Content")
                 if content then
                     local nameLabel = content:FindFirstChild("Name")
-                    if nameLabel then
-                        displayName = nameLabel.Text
-                    end
+                    if nameLabel then displayName = nameLabel.Text end
                 end
             end
             break
         end
     end
-
     unequipSlime(guid)
     task.wait(0.3)
     return displayName
@@ -717,18 +569,14 @@ end
 
 local function getSlimeOptions()
     local tbl = {}
-    for display, _ in pairs(slimeMap) do
-        table.insert(tbl, display)
-    end
+    for display, _ in pairs(slimeMap) do table.insert(tbl, display) end
     table.sort(tbl)
     return tbl
 end
 
 local function getSlimeOptionsWithAll()
     local tbl = {"All"}
-    for display, _ in pairs(slimeMap) do
-        table.insert(tbl, display)
-    end
+    for display, _ in pairs(slimeMap) do table.insert(tbl, display) end
     table.sort(tbl, function(a, b)
         if a == "All" then return true end
         if b == "All" then return false end
@@ -740,37 +588,26 @@ end
 local function getSlimeByText(text)
     local folder = getSlimesFolder()
     if not folder then return nil end
-
     local guid = slimeMap[text]
     if guid then
         for _, v in pairs(folder:GetChildren()) do
-            if v.Name:sub(1, #guid) == guid then
-                return v
-            end
+            if v.Name:sub(1, #guid) == guid then return v end
         end
     end
-
     for _, v in pairs(folder:GetChildren()) do
         local billboard = v:FindFirstChild("SlimeInfoBillboard")
         if billboard and billboard:FindFirstChild("Content") then
             local nameObj = billboard.Content:FindFirstChild("Name")
-            if nameObj and nameObj:IsA("TextLabel") and nameObj.Text == text then
-                return v
-            end
+            if nameObj and nameObj:IsA("TextLabel") and nameObj.Text == text then return v end
         end
     end
 end
 
--- ============================================================
--- DROPDOWNS (declared early, assigned after UI creation)
--- ============================================================
-
 local SlimeDropdown, XPGiverDropdown, XPReceiverDropdown, ProtectedDropdown
 
 local function refreshAllDropdowns()
-    local opts = getSlimeOptions()
+    local opts    = getSlimeOptions()
     local optsAll = getSlimeOptionsWithAll()
-
     SlimeDropdown:Refresh(opts)
     XPGiverDropdown:Refresh(optsAll)
     XPReceiverDropdown:Refresh(opts)
@@ -778,39 +615,37 @@ local function refreshAllDropdowns()
 end
 
 -- ============================================================
--- SCANNER
+-- SCANNER — also disables Auto Roll toggle
 -- ============================================================
 
 local function initSlimeSystem()
     if scanning then return end
     scanning = true
 
-    Rayfield:Notify({ Title = "Slime Scanner", Content = "Disabling auto roll & clearing slots...", Duration = 4, Image = 4483362458 })
+    -- disable auto roll toggle + stop thread
+    AutoRollToggle:Set(false)
+    autoRoll = false
+    if rollThread then task.cancel(rollThread) rollThread = nil end
 
-    rs:WaitForChild("Packages"):WaitForChild("_Index"):WaitForChild("leifstout_networker@0.3.1"):WaitForChild("networker"):WaitForChild("_remotes"):WaitForChild("SettingsService"):WaitForChild("RemoteEvent"):FireServer("set", "autoRoll", false)
+    Rayfield:Notify({ Title = "Slime Scanner", Content = "Disabling auto roll & clearing slots...", Duration = 4, Image = 4483362458 })
+    settingsRE:FireServer("set", "autoRoll", false)
     task.wait(0.2)
 
-    for slot = 1, 10 do
-        unequipSlot(slot)
-    end
+    for slot = 1, 10 do unequipSlot(slot) end
     task.wait(0.3)
 
     local scrollFrame = user.PlayerGui.Root.Inventory.PageInventoryContent.SlimesPage.ScrollingFrame
-    local options = {}
-    local guidQueue = {}
+    local options     = {}
+    local guidQueue   = {}
 
     for _, child in ipairs(scrollFrame:GetChildren()) do
         if child:IsA("Frame") then
             local raw = child.Name:gsub("^InventorySlime_", "")
             if isGUID(raw) then
-                if not slimeMap[raw] then
-                    table.insert(guidQueue, raw)
-                end
+                if not slimeMap[raw] then table.insert(guidQueue, raw) end
             else
                 local display = formatName(child.Name)
-                if not slimeMap[display] then
-                    slimeMap[display] = raw
-                end
+                if not slimeMap[display] then slimeMap[display] = raw end
                 table.insert(options, display)
             end
         end
@@ -830,18 +665,16 @@ local function initSlimeSystem()
 
     equipBest()
     task.wait(0.2)
-
-    rs:WaitForChild("Packages"):WaitForChild("_Index"):WaitForChild("leifstout_networker@0.3.1"):WaitForChild("networker"):WaitForChild("_remotes"):WaitForChild("SettingsService"):WaitForChild("RemoteEvent"):FireServer("set", "autoRoll", true)
+    settingsRE:FireServer("set", "autoRoll", true)
 
     saveSlimeMap()
     refreshAllDropdowns()
     Rayfield:Notify({ Title = "Slime Scanner", Content = "Done! " .. #options .. " slime(s) found.", Duration = 4, Image = 4483362458 })
-
     scanning = false
 end
 
 -- ============================================================
--- UI
+-- SLIME UI
 -- ============================================================
 
 SlimeDropdown = Tab:CreateDropdown({
@@ -850,12 +683,10 @@ SlimeDropdown = Tab:CreateDropdown({
     CurrentOption = {},
     MultipleOptions = false,
     Flag = "slime",
-    Callback = function(Option)
-        selectedSlime = Option[1]
-    end,
+    Callback = function(Option) selectedSlime = Option[1] end,
 })
 
-local Paragraph = Tab:CreateParagraph({Title = "Scan Slimes and Load Saved Slimes", Content = "They're both needed for Auto Feed and XP Transfer"})
+Tab:CreateParagraph({ Title = "Scan Slimes and Load Saved Slimes", Content = "They're both needed for Auto Feed and XP Transfer" })
 
 Tab:CreateButton({
     Name = "Scan Slimes",
@@ -882,15 +713,13 @@ Tab:CreateButton({
     end,
 })
 
-local FoodDropdown = Tab:CreateDropdown({
+Tab:CreateDropdown({
     Name = "Food",
     Options = foodOptions,
     CurrentOption = {"Cheese"},
     MultipleOptions = false,
     Flag = "food",
-    Callback = function(Option)
-        foods.selected = Option[1]
-    end,
+    Callback = function(Option) foods.selected = Option[1] end,
 })
 
 Tab:CreateToggle({
@@ -899,41 +728,35 @@ Tab:CreateToggle({
     Flag = "autofeed",
     Callback = function(v)
         autoFeed = v
-
         task.spawn(function()
             while autoFeed do
                 local slime = getSlimeByText(selectedSlime)
-
                 if slime then
                     local rawName = slime.Name
                     local slimeId = rawName:match("^(.-)#") or rawName
-                    local level = tonumber(rawName:match("#(%d+)")) or 1
-
+                    local level   = tonumber(rawName:match("#(%d+)")) or 1
                     pcall(function()
-                        remote:InvokeServer("requestUseFood", foods[foods.selected] or "apple", slimeId, level)
+                        invRF:InvokeServer("requestUseFood", foods[foods.selected] or "apple", slimeId, level)
                     end)
                 end
-
                 task.wait(1)
             end
         end)
     end,
 })
 
+-- ============================================================
+-- SLIME LOGGER
+-- ============================================================
 
-local HttpService = game:GetService("HttpService")
-
-local webhookUrl = ""
-local loggingEnabled = false
+local webhookUrl      = ""
+local loggingEnabled  = false
 local selectedRarities = {}
-
-local rarityOrder = {"K", "M", "B", "T", "Qd", "Qn", "Sx"}
+local rarityOrder     = {"K", "M", "B", "T", "Qd", "Qn", "Sx"}
 
 local function getRarityTier(text)
     for _, suffix in ipairs(rarityOrder) do
-        if text:find(suffix) then
-            return suffix
-        end
+        if text:find(suffix) then return suffix end
     end
     return nil
 end
@@ -949,15 +772,8 @@ end
 local function getSlimeRarityFromFrame(frame)
     local btn = frame:FindFirstChild("SlimeButton")
     if not btn then return nil end
-    local children = btn:GetChildren()
-    for _, child in ipairs(children) do
-        if child:IsA("TextLabel") then
-            return child.Text
-        end
-    end
-    -- fallback index 3
-    if children[3] and children[3]:FindFirstChildOfClass("TextLabel") then
-        return children[3]:FindFirstChildOfClass("TextLabel").Text
+    for _, child in ipairs(btn:GetChildren()) do
+        if child:IsA("TextLabel") then return child.Text end
     end
     return nil
 end
@@ -1006,10 +822,6 @@ local function sendWebhook(slimeName, rarity)
     end)
 end
 
--- ============================================================
--- UI
--- ============================================================
-
 Tab:CreateSection("Slime Logger")
 
 Tab:CreateInput({
@@ -1018,9 +830,7 @@ Tab:CreateInput({
     PlaceholderText = "https://discord.com/api/webhooks/...",
     RemoveTextAfterFocusLost = false,
     Flag = "WebhookInput",
-    Callback = function(Text)
-        webhookUrl = Text
-    end,
+    Callback = function(Text) webhookUrl = Text end,
 })
 
 Tab:CreateDropdown({
@@ -1029,18 +839,14 @@ Tab:CreateDropdown({
     CurrentOption = {},
     MultipleOptions = true,
     Flag = "RarityFilter",
-    Callback = function(Option)
-        selectedRarities = Option
-    end,
+    Callback = function(Option) selectedRarities = Option end,
 })
 
 Tab:CreateToggle({
     Name = "Enable Slime Logger",
     CurrentValue = false,
     Flag = "SlimeLogger",
-    Callback = function(v)
-        loggingEnabled = v
-    end,
+    Callback = function(v) loggingEnabled = v end,
 })
 
 Tab:CreateButton({
@@ -1065,11 +871,12 @@ Tab:CreateButton({
                 })
             })
         end)
-        if ok then
-            Rayfield:Notify({ Title = "Webhook", Content = "Test sent successfully!", Duration = 3, Image = 4483362458 })
-        else
-            Rayfield:Notify({ Title = "Webhook", Content = "Failed to send! Check your URL.", Duration = 3, Image = 4483362458 })
-        end
+        Rayfield:Notify({
+            Title = "Webhook",
+            Content = ok and "Test sent successfully!" or "Failed to send! Check your URL.",
+            Duration = 3,
+            Image = 4483362458,
+        })
     end,
 })
 
@@ -1085,9 +892,7 @@ XPGiverDropdown = Tab:CreateDropdown({
     CurrentOption = {"All"},
     MultipleOptions = true,
     Flag = "xpgivers",
-    Callback = function(Option)
-        -- stored but we read it fresh in the loop
-    end,
+    Callback = function() end,
 })
 
 XPReceiverDropdown = Tab:CreateDropdown({
@@ -1096,9 +901,7 @@ XPReceiverDropdown = Tab:CreateDropdown({
     CurrentOption = {},
     MultipleOptions = true,
     Flag = "xpreceivers",
-    Callback = function(Option)
-        receiverSlimes = Option
-    end,
+    Callback = function(Option) receiverSlimes = Option end,
 })
 
 ProtectedDropdown = Tab:CreateDropdown({
@@ -1107,9 +910,7 @@ ProtectedDropdown = Tab:CreateDropdown({
     CurrentOption = {},
     MultipleOptions = true,
     Flag = "protectedslimes",
-    Callback = function(Option)
-        protectedSlimes = Option
-    end,
+    Callback = function(Option) protectedSlimes = Option end,
 })
 
 local function isProtected(display)
@@ -1122,16 +923,11 @@ end
 local function getGivers()
     local selected = Rayfield.Flags and Rayfield.Flags["xpgivers"] and Rayfield.Flags["xpgivers"].CurrentOption or {"All"}
     local useAll = false
-    for _, v in ipairs(selected) do
-        if v == "All" then useAll = true break end
-    end
-
+    for _, v in ipairs(selected) do if v == "All" then useAll = true break end end
     local givers = {}
     if useAll then
         for display, id in pairs(slimeMap) do
-            if not isProtected(display) then
-                table.insert(givers, {display = display, id = id})
-            end
+            if not isProtected(display) then table.insert(givers, {display = display, id = id}) end
         end
     else
         for _, display in ipairs(selected) do
@@ -1140,7 +936,6 @@ local function getGivers()
             end
         end
     end
-
     return givers
 end
 
@@ -1150,43 +945,26 @@ Tab:CreateToggle({
     Flag = "autoxp",
     Callback = function(v)
         autoXP = v
-
         if v then
             xpThread = task.spawn(function()
                 local receiverIndex = 1
                 while autoXP do
-                    if #receiverSlimes == 0 then
-                        task.wait(1)
-                        continue
-                    end
-
-                    local receiver = receiverSlimes[receiverIndex]
+                    if #receiverSlimes == 0 then task.wait(1) continue end
+                    local receiver   = receiverSlimes[receiverIndex]
                     local receiverId = slimeMap[receiver]
                     receiverIndex = (receiverIndex % #receiverSlimes) + 1
-
-                    if not receiverId then
-                        task.wait(0.5)
-                        continue
-                    end
-
-                    local givers = getGivers()
-                    for _, giver in ipairs(givers) do
+                    if not receiverId then task.wait(0.5) continue end
+                    for _, giver in ipairs(getGivers()) do
                         if giver.display ~= receiver then
-                            pcall(function()
-                                xpRF:InvokeServer("requestTransferXp", giver.id, receiverId)
-                            end)
+                            pcall(function() xpRF:InvokeServer("requestTransferXp", giver.id, receiverId) end)
                             task.wait(0.3)
                         end
                     end
-
                     task.wait(1)
                 end
             end)
         else
-            if xpThread then
-                task.cancel(xpThread)
-                xpThread = nil
-            end
+            if xpThread then task.cancel(xpThread) xpThread = nil end
         end
     end,
 })
@@ -1197,12 +975,22 @@ Tab:CreateToggle({
 
 local scrollFrame = user.PlayerGui.Root.Inventory.PageInventoryContent.SlimesPage.ScrollingFrame
 
-scrollFrame.ChildAdded:Connect(function(child)
+local function handleNewSlimeChild(child)
     task.wait(0.5)
-    if not child:IsA("Frame") then return end
-    if scanning then return end
-
+    if not child:IsA("Frame") or scanning then return end
     local raw = child.Name:gsub("^InventorySlime_", "")
+
+    local function logIfNeeded(display)
+        if not loggingEnabled then return end
+        task.spawn(function()
+            local rarity = getSlimeRarityFromFrame(child)
+            if not rarity then task.wait(1) rarity = getSlimeRarityFromWorkspace(display) end
+            if rarity then
+                local tier = getRarityTier(rarity)
+                if tier and shouldLog(tier) then sendWebhook(display, rarity) end
+            end
+        end)
+    end
 
     if isGUID(raw) then
         if slimeMap[raw] then return end
@@ -1215,21 +1003,7 @@ scrollFrame.ChildAdded:Connect(function(child)
             saveSlimeMap()
             refreshAllDropdowns()
             Rayfield:Notify({ Title = "New Slime Added", Content = display .. " added to the list!", Duration = 3, Image = 4483362458 })
-            if loggingEnabled then
-                task.spawn(function()
-                    local rarity = getSlimeRarityFromFrame(child)
-                    if not rarity then
-                        task.wait(1)
-                        rarity = getSlimeRarityFromWorkspace(display)
-                    end
-                    if rarity then
-                        local tier = getRarityTier(rarity)
-                        if tier and shouldLog(tier) then
-                            sendWebhook(display, rarity)
-                        end
-                    end
-                end)
-            end
+            logIfNeeded(display)
         end
     else
         local display = formatName(child.Name)
@@ -1238,23 +1012,11 @@ scrollFrame.ChildAdded:Connect(function(child)
         saveSlimeMap()
         refreshAllDropdowns()
         Rayfield:Notify({ Title = "New Slime Added", Content = display .. " added to the list!", Duration = 3, Image = 4483362458 })
-        if loggingEnabled then
-            task.spawn(function()
-                local rarity = getSlimeRarityFromFrame(child)
-                if not rarity then
-                    task.wait(1)
-                    rarity = getSlimeRarityFromWorkspace(display)
-                end
-                if rarity then
-                    local tier = getRarityTier(rarity)
-                    if tier and shouldLog(tier) then
-                        sendWebhook(display, rarity)
-                    end
-                end
-            end)
-        end
+        logIfNeeded(display)
     end
-end)
+end
+
+scrollFrame.ChildAdded:Connect(handleNewSlimeChild)
 
 -- ============================================================
 -- LOAD SAVED DATA ON START
@@ -1264,37 +1026,12 @@ loadSlimeMap()
 refreshAllDropdowns()
 
 -- ============================================================
--- REMOTE REFERENCES
--- ============================================================
-
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-
-local networker = ReplicatedStorage
-    :WaitForChild("Packages")
-    :WaitForChild("_Index")
-    :WaitForChild("leifstout_networker@0.3.1")
-    :WaitForChild("networker")
-    :WaitForChild("_remotes")
-
-local InventoryRemote = networker
-    :WaitForChild("InventoryService")
-    :WaitForChild("RemoteFunction")
-
-local ZonesRemote = networker
-    :WaitForChild("ZonesService")
-    :WaitForChild("RemoteFunction")
-
-local ZonesFolder = workspace:WaitForChild("Zones")
-
--- ============================================================
--- TOGGLE 1: AUTO EQUIP BEST
+-- AUTO EQUIP BEST
 -- ============================================================
 
 local equipThread = nil
 
-local AutoEquipToggle = Tab:CreateToggle({
+Tab:CreateToggle({
     Name = "Auto Equip Best",
     CurrentValue = false,
     Flag = "AutoEquipBest",
@@ -1302,129 +1039,96 @@ local AutoEquipToggle = Tab:CreateToggle({
         if Value then
             equipThread = task.spawn(function()
                 while Value do
-                    pcall(function()
-                        InventoryRemote:InvokeServer("requestEquipBest")
-                    end)
-                    task.wait(1) -- equip check every 1 second
+                    pcall(function() invRF:InvokeServer("requestEquipBest") end)
+                    task.wait(1)
                 end
             end)
         else
-            if equipThread then
-                task.cancel(equipThread)
-                equipThread = nil
-            end
+            if equipThread then task.cancel(equipThread) equipThread = nil end
         end
     end,
 })
 
-local rs = game:GetService("ReplicatedStorage")
-local players = game:GetService("Players")
-local run = game:GetService("RunService")
+-- ============================================================
+-- ZONES
+-- ============================================================
 
-local lp = players.LocalPlayer
-local char = lp.Character or lp.CharacterAdded:Wait()
-local hrp = char:WaitForChild("HumanoidRootPart")
-
-local remote = rs:WaitForChild("Packages"):WaitForChild("_Index"):WaitForChild("leifstout_networker@0.3.1"):WaitForChild("networker"):WaitForChild("_remotes"):WaitForChild("ZonesService"):WaitForChild("RemoteFunction")
-
+local char  = player.Character or player.CharacterAdded:Wait()
+local hrp   = char:WaitForChild("HumanoidRootPart")
 local zones = workspace:WaitForChild("Zones")
 
 local autoPurchase = false
-local autoTP = false
+local autoTP       = false
 
 local function getBestZone()
-	local best = 0
-	for i = 1, 28 do
-		local zone = zones:FindFirstChild(tostring(i))
-		if not zone then continue end
-		local back = zone:FindFirstChild("Gate") and zone.Gate:FindFirstChild("Back")
-		if back and not back.CanCollide then
-			best = i + 1
-		end
-	end
-	return best
-end
-
-local function getCurrentZone()
-	local best = 0
-	for i = 1, 28 do
-		local zone = zones:FindFirstChild(tostring(i))
-		if not zone then continue end
-		local back = zone:FindFirstChild("Gate") and zone.Gate:FindFirstChild("Back")
-		if back and not back.CanCollide then
-			best = i + 1
-		end
-	end
-	return best
+    local best = 0
+    for i = 1, 28 do
+        local zone = zones:FindFirstChild(tostring(i))
+        if not zone then continue end
+        local back = zone:FindFirstChild("Gate") and zone.Gate:FindFirstChild("Back")
+        if back and not back.CanCollide then best = i + 1 end
+    end
+    return best
 end
 
 Tab:CreateToggle({
-	Name = "Auto Purchase Zone",
-	CurrentValue = false,
-	Flag = "autobuy",
-	Callback = function(v)
-		autoPurchase = v
-	end,
+    Name = "Auto Purchase Zone",
+    CurrentValue = false,
+    Flag = "autobuy",
+    Callback = function(v) autoPurchase = v end,
 })
 
 Tab:CreateToggle({
-	Name = "Auto TP Best Zone",
-	CurrentValue = false,
-	Flag = "autotp",
-	Callback = function(v)
-		autoTP = v
-	end,
+    Name = "Auto TP Best Zone",
+    CurrentValue = false,
+    Flag = "autotp",
+    Callback = function(v) autoTP = v end,
 })
 
-run.Heartbeat:Connect(function()
-	char = lp.Character
-	if not char then return end
-	hrp = char:FindFirstChild("HumanoidRootPart")
-	if not hrp then return end
+RunService.Heartbeat:Connect(function()
+    char = player.Character
+    if not char then return end
+    hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
 
-	if autoPurchase then
-		local current = getCurrentZone()
-		local nextZone = zones:FindFirstChild(tostring(current))
-		if nextZone then
-			local back = nextZone:FindFirstChild("Gate") and nextZone.Gate:FindFirstChild("Back")
-			if back and back.CanCollide then
-				remote:InvokeServer("requestPurchaseZone")
-			end
-		end
-	end
+    if autoPurchase then
+        local current  = getBestZone()
+        local nextZone = zones:FindFirstChild(tostring(current))
+        if nextZone then
+            local back = nextZone:FindFirstChild("Gate") and nextZone.Gate:FindFirstChild("Back")
+            if back and back.CanCollide then zonesRF:InvokeServer("requestPurchaseZone") end
+        end
+    end
 
-	if autoTP then
-		local best = getBestZone()
-		if best > 0 then
-			local bestZone = zones:FindFirstChild(tostring(best))
-			if bestZone then
-				local poi = bestZone:FindFirstChild("POI")
-				if poi then
-					local baseplate = poi:FindFirstChild("Baseplate")
-					local spawn = poi:FindFirstChild("PlayerSpawn")
-					if baseplate and spawn then
-						local touching = false
-						for _, part in ipairs(workspace:GetPartsInPart(baseplate)) do
-							if char:IsAncestorOf(part) then
-								touching = true
-								break
-							end
-						end
-						if not touching then
-							hrp.CFrame = spawn.CFrame + Vector3.new(0, 3, 0)
-						end
-					end
-				end
-			end
-		end
-	end
+    if autoTP then
+        local best = getBestZone()
+        if best > 0 then
+            local bestZone = zones:FindFirstChild(tostring(best))
+            if bestZone then
+                local poi = bestZone:FindFirstChild("POI")
+                if poi then
+                    local baseplate = poi:FindFirstChild("Baseplate")
+                    local spawn     = poi:FindFirstChild("PlayerSpawn")
+                    if baseplate and spawn then
+                        local touching = false
+                        for _, part in ipairs(workspace:GetPartsInPart(baseplate)) do
+                            if char:IsAncestorOf(part) then touching = true break end
+                        end
+                        if not touching then hrp.CFrame = spawn.CFrame + Vector3.new(0, 3, 0) end
+                    end
+                end
+            end
+        end
+    end
 end)
 
-local autoIndex = false
-local indexThread = nil
-local indexTypes = {"basic", "big", "huge", "shiny", "inverted"}
+-- ============================================================
+-- AUTO CLAIM INDEX
+-- ============================================================
 
-local indexRF = game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("_Index"):WaitForChild("leifstout_networker@0.3.1"):WaitForChild("networker"):WaitForChild("_remotes"):WaitForChild("IndexService"):WaitForChild("RemoteFunction")
+local autoIndex  = false
+local indexThread = nil
+local indexTypes  = {"basic", "big", "huge", "shiny", "inverted"}
 
 Tab:CreateToggle({
     Name = "Auto Claim Index",
@@ -1432,70 +1136,79 @@ Tab:CreateToggle({
     Flag = "AutoClaimIndex",
     Callback = function(v)
         autoIndex = v
-
         if v then
             indexThread = task.spawn(function()
                 while autoIndex do
                     for _, indexType in ipairs(indexTypes) do
-                        pcall(function()
-                            indexRF:InvokeServer("requestClaimReward", indexType)
-                        end)
+                        pcall(function() indexRF:InvokeServer("requestClaimReward", indexType) end)
                         task.wait(0.3)
                     end
                     task.wait(1)
                 end
             end)
         else
-            if indexThread then
-                task.cancel(indexThread)
-                indexThread = nil
+            if indexThread then task.cancel(indexThread) indexThread = nil end
+        end
+    end,
+})
+
+-- ============================================================
+-- ANTI AFK
+-- ============================================================
+
+Tab:CreateToggle({
+    Name = "Anti AFK",
+    CurrentValue = false,
+    Flag = "AntiAFK",
+    Callback = function(v)
+        if v then
+            if getconnections then
+                for _, connection in pairs(getconnections(player.Idled)) do
+                    if connection.Disable then connection:Disable()
+                    elseif connection.Disconnect then connection:Disconnect() end
+                end
+            else
+                player.Idled:Connect(function()
+                    local VU = game:GetService("VirtualUser")
+                    VU:CaptureController()
+                    VU:ClickButton2(Vector2.new())
+                end)
             end
         end
     end,
 })
 
+-- ============================================================
+-- QUEUE ON TELEPORT
+-- ============================================================
 
-local Players = game:GetService("Players")
-local TeleportService = game:GetService("TeleportService")
-local RunService = game:GetService("RunService")
 local PlaceId = game.PlaceId
-local JobId = game.JobId
-if queue_on_teleport then
-    game:GetService("TeleportService").LocalPlayerArrivedFromTeleport:Connect(function()
-        queue_on_teleport("loadstring(game:HttpGet('https://raw.githubusercontent.com/Robloxblast/man/refs/heads/main/SRNG'))()")
-    end)
+local JobId   = game.JobId
 
-    Players.LocalPlayer.OnTeleport:Connect(function(state)
+if queue_on_teleport then
+    player.OnTeleport:Connect(function(state)
         if state == Enum.TeleportState.Started then
             queue_on_teleport("loadstring(game:HttpGet('https://raw.githubusercontent.com/Robloxblast/man/refs/heads/main/SRNG'))()")
         end
     end)
 end
--- ========================
--- SERVER HOP FUNCTION
--- ========================
+
+-- ============================================================
+-- SERVER HOP
+-- ============================================================
+
 local function serverHop()
     local ok, result = pcall(function()
-        return game:HttpGet(
-            "https://games.roblox.com/v1/games/" ..
-            PlaceId ..
-            "/servers/Public?sortOrder=Desc&limit=100&excludeFullGames=true"
-        )
+        return game:HttpGet("https://games.roblox.com/v1/games/" .. PlaceId .. "/servers/Public?sortOrder=Desc&limit=100&excludeFullGames=true")
     end)
-
     if not ok then return end
 
     local body = HttpService:JSONDecode(result)
     if not body or not body.data then return end
 
     local servers = {}
-
     for _, v in ipairs(body.data) do
-        if type(v) == "table"
-        and v.playing
-        and v.maxPlayers
-        and v.playing < v.maxPlayers
-        and v.id ~= JobId then
+        if type(v) == "table" and v.playing and v.maxPlayers and v.playing < v.maxPlayers and v.id ~= JobId then
             table.insert(servers, v.id)
         end
     end
@@ -1504,30 +1217,22 @@ local function serverHop()
         if queue_on_teleport then
             queue_on_teleport("loadstring(game:HttpGet('https://raw.githubusercontent.com/Robloxblast/man/refs/heads/main/SRNG'))()")
         end
-        TeleportService:TeleportToPlaceInstance(
-            PlaceId,
-            servers[math.random(1, #servers)],
-            Players.LocalPlayer
-        )
+        TeleportService:TeleportToPlaceInstance(PlaceId, servers[math.random(1, #servers)], player)
     else
-        Rayfield:Notify({
-            Title = "Server Hop",
-            Content = "No available servers found!",
-            Duration = 3,
-            Image = 4483362458,
-        })
+        Rayfield:Notify({ Title = "Server Hop", Content = "No available servers found!", Duration = 3, Image = 4483362458 })
     end
 end
 
--- ========================
--- AUTO HOP LOGIC
--- ========================
-local autoHop = false
-local hopThread = nil
-local CHECK_INTERVAL = 5 -- check every 3 seconds
+-- ============================================================
+-- AUTO HOP FOR SERVER LUCK
+-- ============================================================
+
+local autoHop      = false
+local hopThread    = nil
+local CHECK_INTERVAL = 5
 
 local function getLuckText()
-    local playerGui = Players.LocalPlayer:FindFirstChild("PlayerGui")
+    local playerGui = player:FindFirstChild("PlayerGui")
     if not playerGui then return nil end
     local root = playerGui:FindFirstChild("Root")
     if not root then return nil end
@@ -1540,12 +1245,8 @@ end
 
 local function hasServerLuck(text)
     if not text then return false end
-    -- look for x2 or higher (x2, x3, x5, x10 etc)
     local multiplier = text:match("x(%d+)")
-    if multiplier and tonumber(multiplier) >= 2 then
-        return true
-    end
-    return false
+    return multiplier and tonumber(multiplier) >= 2
 end
 
 local function startAutoHop()
@@ -1554,58 +1255,20 @@ local function startAutoHop()
             local text = getLuckText()
             if text then
                 if hasServerLuck(text) then
-                    Rayfield:Notify({
-                        Title = "Server Luck Found!",
-                        Content = "Server luck active: " .. tostring(text) .. " — staying!",
-                        Duration = 4,
-                        Image = 4483362458,
-                    })
-                    -- keep checking in case it changes
+                    Rayfield:Notify({ Title = "Server Luck Found!", Content = "Server luck active: " .. tostring(text) .. " — staying!", Duration = 4, Image = 4483362458 })
                     task.wait(CHECK_INTERVAL)
                 else
-                    Rayfield:Notify({
-                        Title = "No Server Luck",
-                        Content = "Luck: " .. tostring(text) .. " — hopping...",
-                        Duration = 3,
-                        Image = 4483362458,
-                    })
+                    Rayfield:Notify({ Title = "No Server Luck", Content = "Luck: " .. tostring(text) .. " — hopping...", Duration = 3, Image = 4483362458 })
                     task.wait(2)
                     serverHop()
-                    return -- stop loop after hop
+                    return
                 end
             else
-                -- GUI not loaded yet, wait
                 task.wait(1)
             end
         end
     end)
 end
-
-
-Tab:CreateToggle({
-    Name = "Anti AFK",
-    CurrentValue = false,
-    Flag = "AntiAFK",
-    Callback = function(v)
-        if v then
-            if getconnections then
-                for _, connection in pairs(getconnections(game.Players.LocalPlayer.Idled)) do
-                    if connection.Disable then
-                        connection:Disable()
-                    elseif connection.Disconnect then
-                        connection:Disconnect()
-                    end
-                end
-            else
-                game.Players.LocalPlayer.Idled:Connect(function()
-                    local VirtualUser = game:GetService("VirtualUser")
-                    VirtualUser:CaptureController()
-                    VirtualUser:ClickButton2(Vector2.new())
-                end)
-            end
-        end
-    end,
-})
 
 Misc:CreateSection("Auto Hop")
 
@@ -1622,29 +1285,17 @@ Misc:CreateToggle({
         autoHop = value
         if value then
             startAutoHop()
-            Rayfield:Notify({
-                Title = "Auto Hop",
-                Content = "Started hunting for server luck!",
-                Duration = 3,
-                Image = 4483362458,
-            })
+            Rayfield:Notify({ Title = "Auto Hop", Content = "Started hunting for server luck!", Duration = 3, Image = 4483362458 })
         else
             hopThread = nil
-            Rayfield:Notify({
-                Title = "Auto Hop",
-                Content = "Stopped.",
-                Duration = 3,
-                Image = 4483362458,
-            })
+            Rayfield:Notify({ Title = "Auto Hop", Content = "Stopped.", Duration = 3, Image = 4483362458 })
         end
     end,
 })
 
 Misc:CreateButton({
     Name = "Manual Server Hop",
-    Callback = function()
-        serverHop()
-    end,
+    Callback = function() serverHop() end,
 })
 
 Rayfield:LoadConfiguration()
