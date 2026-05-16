@@ -166,6 +166,11 @@ local function startKillAura()
 end
 
 Tab:CreateSection("Auto Shoot Slime Aura")
+Tab:CreateParagraph({
+    Title = "Slime Aura Info",
+    Content = "The slime aura weapon wont show but its actually damaging the slimes you can test it by going back to the first zone and unequipping all ur slimes it will kill them and side info you must have the slime gun unlocked."
+})
+
 
 Tab:CreateToggle({
     Name = "Auto Shoot Slime Aura",
@@ -240,7 +245,6 @@ local function collectLoot()
     for _, child in ipairs(lootFolder:GetChildren()) do
         for _, item in ipairs(child:GetDescendants()) do
             if lootSet[item.Name:lower()] then
-                -- touch interest
                 if item:IsA("BasePart") then
                     local ti = item:FindFirstChildOfClass("TouchTransmitter") or item:FindFirstChild("TouchInterest")
                     if ti then touchPart(item) end
@@ -258,27 +262,36 @@ local function collectLoot()
                         hrp.CFrame = CFrame.new(worldPos + Vector3.new(0, 3, 0))
                         task.wait(0.05)
                         fireproximityprompt(prompt)
-                        task.wait(0.05)
+
+                        -- wait until the root/item is destroyed or timeout
+                        local root = item.Parent
+                        local elapsed = 0
+                        while elapsed < 3 do
+                            if not root or not root.Parent then break end
+                            if not item or not item.Parent then break end
+                            task.wait(0.05)
+                            elapsed += 0.05
+                        end
+
                         hrp.CFrame = originalCFrame
                     end
                 end
 
-                -- attachment child
                 local att = item:FindFirstChild("Attachment") or item:FindFirstChild("attachment")
                 if att then handlePrompt(att:FindFirstChildOfClass("ProximityPrompt")) end
 
-                -- item is attachment
                 if item:IsA("Attachment") then
                     handlePrompt(item:FindFirstChildOfClass("ProximityPrompt"))
                 end
 
-                -- item is basepart with prompt
                 if item:IsA("BasePart") then
                     handlePrompt(item:FindFirstChildOfClass("ProximityPrompt"))
                 end
             end
         end
     end
+
+    hrp.CFrame = originalCFrame
 end
 
 Tab:CreateParagraph({ Title = "Auto Collect", Content = "The auto collect already auto collects the power fruits" })
@@ -1061,6 +1074,8 @@ Tab:CreateToggle({
 local char  = player.Character or player.CharacterAdded:Wait()
 local hrp   = char:WaitForChild("HumanoidRootPart")
 local zones = workspace:WaitForChild("Zones")
+local tpCooldown = false
+
 
 local autoPurchase = false
 local autoTP       = false
@@ -1105,27 +1120,81 @@ RunService.Heartbeat:Connect(function()
         end
     end
 
-    if autoTP then
-        local best = getBestZone()
-        if best > 0 then
-            local bestZone = zones:FindFirstChild(tostring(best))
-            if bestZone then
-                local poi = bestZone:FindFirstChild("POI")
-                if poi then
-                    local baseplate = poi:FindFirstChild("Baseplate")
-                    local spawn     = poi:FindFirstChild("PlayerSpawn")
-                    if baseplate and spawn then
-                        local touching = false
-                        for _, part in ipairs(workspace:GetPartsInPart(baseplate)) do
-                            if char:IsAncestorOf(part) then touching = true break end
-                        end
-                        if not touching then hrp.CFrame = spawn.CFrame + Vector3.new(0, 3, 0) end
+
+if autoTP then
+    local best = getBestZone()
+    if best > 0 then
+        local bestZone = zones:FindFirstChild(tostring(best))
+        if bestZone then
+            local poi = bestZone:FindFirstChild("POI")
+            if poi then
+                local baseplate = poi:FindFirstChild("Baseplate")
+                local spawn     = poi:FindFirstChild("PlayerSpawn")
+                if baseplate and spawn then
+                    local humanoid = char:FindFirstChildOfClass("Humanoid")
+                    local isJumping = humanoid and humanoid.Jump
+
+                    local touching = false
+                    for _, part in ipairs(workspace:GetPartsInPart(baseplate)) do
+                        if char:IsAncestorOf(part) then touching = true break end
+                    end
+
+                    if not touching and not tpCooldown and not isJumping then
+                        tpCooldown = true
+                        hrp.CFrame = spawn.CFrame + Vector3.new(0, 3, 0)
+                        task.delay(2, function() tpCooldown = false end)
                     end
                 end
             end
         end
     end
+end
 end)
+
+
+local zoneOptions = {}
+for i = 1, 28 do table.insert(zoneOptions, "Zone " .. i) end
+
+local selectedZone = "Zone 1"
+
+Tab:CreateDropdown({
+    Name = "Select Zone",
+    Options = zoneOptions,
+    CurrentOption = {"Zone 1"},
+    MultipleOptions = false,
+    Flag = "ZoneSelect",
+    Callback = function(Option) selectedZone = Option[1] end,
+})
+
+Tab:CreateButton({
+    Name = "Teleport to Zone",
+    Callback = function()
+        local char = player.Character
+        local hrp  = char and char:FindFirstChild("HumanoidRootPart")
+        if not hrp then
+            Rayfield:Notify({ Title = "TP Zone", Content = "Character not found!", Duration = 3, Image = 4483362458 })
+            return
+        end
+        local zoneNum  = tonumber(selectedZone:match("%d+"))
+        local zone     = zones:FindFirstChild(tostring(zoneNum))
+        if not zone then
+            Rayfield:Notify({ Title = "TP Zone", Content = "Zone " .. zoneNum .. " not found!", Duration = 3, Image = 4483362458 })
+            return
+        end
+        local poi = zone:FindFirstChild("POI")
+        if not poi then
+            Rayfield:Notify({ Title = "TP Zone", Content = "Zone " .. zoneNum .. " has no spawn point!", Duration = 3, Image = 4483362458 })
+            return
+        end
+        local spawn = poi:FindFirstChild("PlayerSpawn")
+        if not spawn then
+            Rayfield:Notify({ Title = "TP Zone", Content = "Zone " .. zoneNum .. " has no PlayerSpawn!", Duration = 3, Image = 4483362458 })
+            return
+        end
+        hrp.CFrame = spawn.CFrame + Vector3.new(0, 3, 0)
+        Rayfield:Notify({ Title = "TP Zone", Content = "Teleported to Zone " .. zoneNum .. "!", Duration = 3, Image = 4483362458 })
+    end,
+})
 
 -- ============================================================
 -- AUTO CLAIM INDEX
@@ -1206,10 +1275,10 @@ local function serverHop()
     local ok, result = pcall(function()
         return game:HttpGet("https://games.roblox.com/v1/games/" .. PlaceId .. "/servers/Public?sortOrder=Desc&limit=100&excludeFullGames=true")
     end)
-    if not ok then return end
+    if not ok then return false end
 
     local body = HttpService:JSONDecode(result)
-    if not body or not body.data then return end
+    if not body or not body.data then return false end
 
     local servers = {}
     for _, v in ipairs(body.data) do
@@ -1223,8 +1292,10 @@ local function serverHop()
             queue_on_teleport("loadstring(game:HttpGet('https://raw.githubusercontent.com/Robloxblast/man/refs/heads/main/SRNG'))()")
         end
         TeleportService:TeleportToPlaceInstance(PlaceId, servers[math.random(1, #servers)], player)
+        return true
     else
-        Rayfield:Notify({ Title = "Server Hop", Content = "No available servers found!", Duration = 3, Image = 4483362458 })
+        Rayfield:Notify({ Title = "Server Hop", Content = "No available servers found! Stopping.", Duration = 4, Image = 4483362458 })
+        return false
     end
 end
 
@@ -1265,7 +1336,12 @@ local function startAutoHop()
                 else
                     Rayfield:Notify({ Title = "No Server Luck", Content = "Luck: " .. tostring(text) .. " — hopping...", Duration = 3, Image = 4483362458 })
                     task.wait(2)
-                    serverHop()
+                    local hopped = serverHop()
+                    if not hopped then
+                        autoHop = false
+                        Rayfield:Notify({ Title = "Auto Hop", Content = "Stopped — no servers available.", Duration = 4, Image = 4483362458 })
+                        return
+                    end
                     return
                 end
             else
