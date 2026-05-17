@@ -209,6 +209,62 @@ Tab:CreateSlider({
     Callback = function(value) killAuraDelay = value end,
 })
 
+
+-- ============================================================
+-- AUTO SHOOT SLIME GUN (CLICK VERSION)
+-- ============================================================
+
+local VirtualInput = game:GetService("VirtualInputManager")
+local autoClick = false
+local autoClickThread = nil
+local autoClickDelay = 0.1
+
+Tab:CreateSection("Auto Shoot Slime Gun (Click)")
+
+Tab:CreateParagraph({
+    Title = "Click Version Info",
+    Content = "This version simulates actual mouse clicks instead of slime aura. Use this if you don't like slime aura."
+})
+
+Tab:CreateToggle({
+    Name = "Auto Shoot (Click)",
+    CurrentValue = false,
+    Flag = "AutoShootClick",
+    Callback = function(value)
+        autoClick = value
+        if value then
+            autoClickThread = task.spawn(function()
+                while autoClick do
+                    -- press
+                    VirtualInput:SendMouseButtonEvent(0, 0, 0, true, game, 0)
+                    task.wait(0.05)
+                    -- release
+                    VirtualInput:SendMouseButtonEvent(0, 0, 0, false, game, 0)
+                    task.wait(autoClickDelay)
+                end
+            end)
+            Rayfield:Notify({ Title = "Auto Shoot", Content = "Click version enabled!", Duration = 3, Image = 4483362458 })
+        else
+            if autoClickThread then
+                task.cancel(autoClickThread)
+                autoClickThread = nil
+            end
+            Rayfield:Notify({ Title = "Auto Shoot", Content = "Click version disabled.", Duration = 3, Image = 4483362458 })
+        end
+    end,
+})
+
+Tab:CreateSlider({
+    Name = "Click Delay",
+    Range = {0.01, 1},
+    Increment = 0.01,
+    Suffix = "s",
+    CurrentValue = autoClickDelay,
+    Flag = "AutoClickDelay",
+    Callback = function(value) autoClickDelay = value end,
+})
+
+
 -- ============================================================
 -- AUTO COLLECT LOOT
 -- ============================================================
@@ -1089,7 +1145,22 @@ local function getBestZone()
         local back = zone:FindFirstChild("Gate") and zone.Gate:FindFirstChild("Back")
         if back and not back.CanCollide then best = i + 1 end
     end
-    return best
+    -- always return at least 1 so zone 1 can be purchased after rebirth
+    return math.max(best, 1)
+end
+
+local function getCurrentPurchasableZone()
+    -- find the first zone that has a locked gate (CanCollide = true)
+    for i = 1, 33 do
+        local zone = zones:FindFirstChild(tostring(i))
+        if not zone then continue end
+        local gate = zone:FindFirstChild("Gate")
+        local back = gate and gate:FindFirstChild("Back")
+        if back and back.CanCollide then
+            return i -- this zone is locked, try to buy it
+        end
+    end
+    return nil -- all zones unlocked
 end
 
 Tab:CreateToggle({
@@ -1113,43 +1184,36 @@ RunService.Heartbeat:Connect(function()
     if not hrp then return end
 
     if autoPurchase then
-        local current  = getBestZone()
-        local nextZone = zones:FindFirstChild(tostring(current))
-        if nextZone then
-            local back = nextZone:FindFirstChild("Gate") and nextZone.Gate:FindFirstChild("Back")
-            if back and back.CanCollide then zonesRF:InvokeServer("requestPurchaseZone") end
+        local zoneNum = getCurrentPurchasableZone()
+        if zoneNum then
+            pcall(function() zonesRF:InvokeServer("requestPurchaseZone") end)
         end
     end
 
-
-if autoTP then
-    local best = getBestZone()
-    if best > 0 then
-        local bestZone = zones:FindFirstChild(tostring(best))
-        if bestZone then
-            local poi = bestZone:FindFirstChild("POI")
-            if poi then
-                local baseplate = poi:FindFirstChild("Baseplate")
-                local spawn     = poi:FindFirstChild("PlayerSpawn")
-                if baseplate and spawn then
-                    local humanoid = char:FindFirstChildOfClass("Humanoid")
-                    local isJumping = humanoid and humanoid.Jump
-
-                    local touching = false
-                    for _, part in ipairs(workspace:GetPartsInPart(baseplate)) do
-                        if char:IsAncestorOf(part) then touching = true break end
-                    end
-
-                    if not touching and not tpCooldown and not isJumping then
-                        tpCooldown = true
-                        hrp.CFrame = spawn.CFrame + Vector3.new(0, 3, 0)
-                        task.delay(2, function() tpCooldown = false end)
+    if autoTP then
+        local best = getBestZone()
+        if best > 0 then
+            local bestZone = zones:FindFirstChild(tostring(best))
+            if bestZone then
+                local poi = bestZone:FindFirstChild("POI")
+                if poi then
+                    local baseplate = poi:FindFirstChild("Baseplate")
+                    local spawn     = poi:FindFirstChild("PlayerSpawn")
+                    if baseplate and spawn then
+                        local touching = false
+                        for _, part in ipairs(workspace:GetPartsInPart(baseplate)) do
+                            if char:IsAncestorOf(part) then touching = true break end
+                        end
+                        if not touching and not tpCooldown then
+                            tpCooldown = true
+                            hrp.CFrame = spawn.CFrame + Vector3.new(0, 3, 0)
+                            task.delay(2, function() tpCooldown = false end)
+                        end
                     end
                 end
             end
         end
     end
-end
 end)
 
 
