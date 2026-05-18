@@ -299,7 +299,7 @@ end)
 
 local hookSupported = typeof(hookmetamethod) == "function"
 
-MainTab:CreateParagraph({Title = "Silent Aim", Content = "Redirects your Gun Shoot remote to the closest target in FOV."})
+MainTab:CreateParagraph({Title = "Silent Aim", Content = "Redirects your Gun Shoot to the closest target in FOV."})
 
 if not hookSupported then
     Rayfield:Notify({
