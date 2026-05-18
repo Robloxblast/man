@@ -206,7 +206,6 @@ local function isValidTarget(plr)
         if myRole == "Murderer" then
             -- target everyone
         else
-            -- sheriff/innocent: only target murderer
             if getRole(plr) ~= "Murderer" then return false end
         end
     end
@@ -299,7 +298,7 @@ end)
 
 local hookSupported = typeof(hookmetamethod) == "function"
 
-MainTab:CreateParagraph({Title = "Silent Aim", Content = "Redirects your Gun Shoot to the closest target in FOV."})
+MainTab:CreateParagraph({Title = "Silent Aim", Content = "Redirects your Gun Shoot remote to the closest target in FOV."})
 
 if not hookSupported then
     Rayfield:Notify({
@@ -547,6 +546,10 @@ local cameraWallCheck = false
 local aimbotSmoothing = 0.5
 
 local function getClosestCamera()
+if innocentNoGunLock then
+        local myRole = getRole(lp)
+        if myRole == "Innocent" then return nil end
+    end
     local best, bestDist = nil, math.huge
     local center = cam.ViewportSize / 2
     for _, plr in pairs(Players:GetPlayers()) do
@@ -619,6 +622,14 @@ MainTab:CreateToggle({
     CurrentValue = true,
     Flag         = "TeamCheck",
     Callback     = function(v) teamCheckEnabled = v end,
+})
+local innocentNoGunLock = false
+
+MainTab:CreateToggle({
+    Name         = "Camlock: Skip If Innocent Without Gun",
+    CurrentValue = false,
+    Flag         = "InnocentNoGunLock",
+    Callback     = function(v) innocentNoGunLock = v end,
 })
 
 -- ============================================================
@@ -1204,7 +1215,7 @@ local function destroyManualShootButton()
 end
 
 -- UI
-MainTab:CreateSection("Shoot Murderer (TPs To Murder If you want legit use Silent Aim 2.0 or 1.0)")
+MainTab:CreateSection("Shoot Murderer (Must Have Gun)")
 
 MainTab:CreateToggle({
     Name         = "Auto Shoot Murderer",
