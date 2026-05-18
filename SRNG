@@ -55,66 +55,6 @@ local function getRemoteEvent(service)
     return networker:WaitForChild(service):WaitForChild("RemoteEvent")
 end
 
--- ============================================================
--- REMOTES
--- ============================================================
-
-local RollRF      = getRemote("RollService")
-local SlimeGunRF  = getRemote("SlimeGunService")
-local invRF       = getRemote("InventoryService")
-local xpRF        = getRemote("XpTransferService")
-local boostRF     = getRemote("BoostService")
-local rebirthRF   = getRemote("RebirthService")
-local upgradeRF   = getRemote("UpgradeService")
-local zonesRF     = getRemote("ZonesService")
-local indexRF     = getRemote("IndexService")
-local settingsRE  = getRemoteEvent("SettingsService")
-
--- ============================================================
--- TABS
--- ============================================================
-
-local Tab  = Window:CreateTab("Main", "rewind")
-local Misc = Window:CreateTab("Server Luck", "zap")
-
--- ============================================================
--- AUTO ROLL
--- ============================================================
-
-local autoRoll = false
-local rollThread = nil
-local AutoRollToggle -- forward declare so scanner can toggle it
-
-AutoRollToggle = Tab:CreateToggle({
-    Name = "Auto Roll",
-    CurrentValue = false,
-    Flag = "AutoRoll",
-    Callback = function(v)
-        autoRoll = v
-        if v then
-            rollThread = task.spawn(function()
-                while autoRoll do
-                    pcall(function() RollRF:InvokeServer("requestRoll") end)
-                    task.wait(0.1)
-                end
-            end)
-        else
-            if rollThread then
-                task.cancel(rollThread)
-                rollThread = nil
-            end
-        end
-    end,
-})
-
--- ============================================================
--- KILL AURA
--- ============================================================
-
-local killAura      = false
-local killAuraThread = nil
-local killAuraRange = 100
-local killAuraDelay = 0.1
 
 local function getEnemiesFolder()
     for _, v in ipairs(workspace:GetChildren()) do
@@ -146,6 +86,139 @@ local function getEnemies()
     end
     return enemies
 end
+
+-- ============================================================
+-- REMOTES
+-- ============================================================
+
+local RollRF      = getRemote("RollService")
+local SlimeGunRF  = getRemote("SlimeGunService")
+local invRF       = getRemote("InventoryService")
+local xpRF        = getRemote("XpTransferService")
+local boostRF     = getRemote("BoostService")
+local rebirthRF   = getRemote("RebirthService")
+local upgradeRF   = getRemote("UpgradeService")
+local zonesRF     = getRemote("ZonesService")
+local indexRF     = getRemote("IndexService")
+local settingsRE  = getRemoteEvent("SettingsService")
+
+-- ============================================================
+-- TABS
+-- ============================================================
+
+local Tab  = Window:CreateTab("Main", "rewind")
+local Misc = Window:CreateTab("Server Luck", "zap")
+local MiscTab = Window:CreateTab("Misc", "settings")
+
+-- ============================================================
+-- AUTO ROLL
+-- ============================================================
+
+local autoRoll = false
+local rollThread = nil
+local AutoRollToggle -- forward declare so scanner can toggle it
+
+AutoRollToggle = Tab:CreateToggle({
+    Name = "Auto Roll",
+    CurrentValue = false,
+    Flag = "AutoRoll",
+    Callback = function(v)
+        autoRoll = v
+        if v then
+            rollThread = task.spawn(function()
+                while autoRoll do
+                    pcall(function() RollRF:InvokeServer("requestRoll") end)
+                    task.wait(0.1)
+                end
+            end)
+        else
+            if rollThread then
+                task.cancel(rollThread)
+                rollThread = nil
+            end
+        end
+    end,
+})
+
+local autoTPEnemies = false
+local autoTPThread = nil
+
+Tab:CreateToggle({
+    Name = "Auto TP To Enemies",
+    CurrentValue = false,
+    Flag = "AutoTPEnemies",
+    Callback = function(v)
+        autoTPEnemies = v
+
+        if v then
+            autoTPThread = task.spawn(function()
+                while autoTPEnemies do
+                    local char = player.Character
+                    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+
+                    if hrp then
+                        local enemiesFolder = getEnemiesFolder()
+
+                        if enemiesFolder then
+                            local closest = nil
+                            local closestDist = math.huge
+
+                            for _, enemy in ipairs(enemiesFolder:GetChildren()) do
+                                local enemyHRP = enemy:FindFirstChild("HumanoidRootPart")
+
+                                if enemyHRP then
+                                    local dist = (enemyHRP.Position - hrp.Position).Magnitude
+
+                                    if dist < closestDist then
+                                        closestDist = dist
+                                        closest = enemyHRP
+                                    end
+                                else
+                                    local ok, pos = pcall(function()
+                                        return enemy:GetPivot().Position
+                                    end)
+
+                                    if ok then
+                                        local dist = (pos - hrp.Position).Magnitude
+
+                                        if dist < closestDist then
+                                            closestDist = dist
+                                            closest = pos
+                                        end
+                                    end
+                                end
+                            end
+
+                            if closest then
+                                if typeof(closest) == "Instance" then
+                                    hrp.CFrame = closest.CFrame + Vector3.new(0, 3, 0)
+                                else
+                                    hrp.CFrame = CFrame.new(closest + Vector3.new(0, 3, 0))
+                                end
+                            end
+                        end
+                    end
+
+                    task.wait()
+                end
+            end)
+        else
+            if autoTPThread then
+                task.cancel(autoTPThread)
+                autoTPThread = nil
+            end
+        end
+    end,
+})
+
+-- ============================================================
+-- KILL AURA
+-- ============================================================
+
+local killAura      = false
+local killAuraThread = nil
+local killAuraRange = 100
+local killAuraDelay = 0.1
 
 local function startKillAura()
     killAuraThread = task.spawn(function()
@@ -209,6 +282,61 @@ Tab:CreateSlider({
     Callback = function(value) killAuraDelay = value end,
 })
 
+
+-- ============================================================
+-- AUTO SHOOT SLIME GUN (CLICK VERSION)
+-- ============================================================
+
+--[[local VirtualInput = game:GetService("VirtualInputManager")
+local autoClick = false
+local autoClickThread = nil
+local autoClickDelay = 0.1
+
+Tab:CreateSection("Auto Shoot Slime Gun (Click)")
+
+Tab:CreateParagraph({
+    Title = "Click Version Info",
+    Content = "This version simulates actual mouse clicks instead of slime aura. Use this if you don't like slime aura."
+})
+
+Tab:CreateToggle({
+    Name = "Auto Shoot (Click)",
+    CurrentValue = false,
+    Flag = "AutoShootClick",
+    Callback = function(value)
+        autoClick = value
+        if value then
+            autoClickThread = task.spawn(function()
+                while autoClick do
+                    -- press
+                    VirtualInput:SendMouseButtonEvent(0, 0, 0, true, game, 0)
+                    task.wait(0.05)
+                    -- release
+                    VirtualInput:SendMouseButtonEvent(0, 0, 0, false, game, 0)
+                    task.wait(autoClickDelay)
+                end
+            end)
+            Rayfield:Notify({ Title = "Auto Shoot", Content = "Click version enabled!", Duration = 3, Image = 4483362458 })
+        else
+            if autoClickThread then
+                task.cancel(autoClickThread)
+                autoClickThread = nil
+            end
+            Rayfield:Notify({ Title = "Auto Shoot", Content = "Click version disabled.", Duration = 3, Image = 4483362458 })
+        end
+    end,
+})
+
+Tab:CreateSlider({
+    Name = "Click Delay",
+    Range = {0.01, 1},
+    Increment = 0.01,
+    Suffix = "s",
+    CurrentValue = autoClickDelay,
+    Flag = "AutoClickDelay",
+    Callback = function(value) autoClickDelay = value end,
+})
+--]]
 
 
 -- ============================================================
@@ -626,10 +754,12 @@ local SlimeDropdown, XPGiverDropdown, XPReceiverDropdown, ProtectedDropdown
 local function refreshAllDropdowns()
     local opts    = getSlimeOptions()
     local optsAll = getSlimeOptionsWithAll()
-    SlimeDropdown:Refresh(opts)
+    if #opts > 0 then
+        SlimeDropdown:Refresh(opts)
+        XPReceiverDropdown:Refresh(opts)
+        ProtectedDropdown:Refresh(opts)
+    end
     XPGiverDropdown:Refresh(optsAll)
-    XPReceiverDropdown:Refresh(opts)
-    ProtectedDropdown:Refresh(opts)
 end
 
 -- ============================================================
@@ -790,13 +920,54 @@ local function shouldLog(tier)
     return false
 end
 
-local function getSlimeRarityFromFrame(frame)
+local function getSlimeRarity(frame)
     local btn = frame:FindFirstChild("SlimeButton")
     if not btn then return nil end
+    local frameCount = 0
     for _, child in ipairs(btn:GetChildren()) do
-        if child:IsA("TextLabel") then return child.Text end
+        if child:IsA("Frame") and child.Name == "TextLabelFrame" then
+            frameCount += 1
+            if frameCount == 2 then
+                local tl = child:FindFirstChildOfClass("TextLabel")
+                if tl then
+                    -- strip ALL whitespace and non-breaking spaces
+                    return tl.Text:gsub("%s", ""):gsub("\226\128\139", ""):gsub("\194\160", "")
+                end
+            end
+        end
     end
     return nil
+end
+
+local function normalizeRarity(s)
+    return s:gsub("%s", ""):gsub("\226\128\139", ""):gsub("\194\160", "")
+end
+
+local function findIngredients(rarities)
+    local scroll = player.PlayerGui.Root.Inventory.PageInventoryContent.SlimesPage.ScrollingFrame
+    local ids = {}
+    local usedFrames = {}
+
+    for _, target in ipairs(rarities) do
+        local normTarget = normalizeRarity(target)
+        local found = false
+        for _, frame in ipairs(scroll:GetChildren()) do
+            if frame:IsA("Frame") and not usedFrames[frame.Name] then
+                local rarity = getSlimeRarity(frame)
+                if rarity and normalizeRarity(rarity) == normTarget then
+                    table.insert(ids, frame.Name:gsub("^InventorySlime_", ""))
+                    usedFrames[frame.Name] = true
+                    found = true
+                    break
+                end
+            end
+        end
+        if not found then
+            return nil, target  -- return which rarity was missing
+        end
+    end
+
+    return ids, nil
 end
 
 local function getSlimeRarityFromWorkspace(displayName)
@@ -901,9 +1072,47 @@ Tab:CreateButton({
     end,
 })
 
--- ============================================================
--- XP TRANSFER
--- ============================================================
+
+Tab:CreateSection("Auto Claim Recipes")
+
+local craftingRF = getRemote("CraftingService")
+
+local recipeZones = {7, 9, 11, 13, 15, 17, 19, 21}
+
+local autoRecipe = false
+local recipeThread = nil
+
+Tab:CreateToggle({
+    Name = "Auto Claim Recipes",
+    CurrentValue = false,
+    Flag = "AutoClaimRecipes",
+    Callback = function(v)
+        autoRecipe = v
+        if v then
+            recipeThread = task.spawn(function()
+                while autoRecipe do
+                    for _, zoneNum in ipairs(recipeZones) do
+                        if not autoRecipe then break end
+                        local zone = zones:FindFirstChild(tostring(zoneNum))
+                        if zone then
+                            local recipe = zone:FindFirstChild("Recipe")
+                            if recipe then
+                                pcall(function()
+                                    craftingRF:InvokeServer("requestClaimRecipe", "crafty", recipe)
+                                end)
+                            end
+                        end
+                        task.wait(0.3)
+                    end
+                    task.wait(1)
+                end
+            end)
+        else
+            if recipeThread then task.cancel(recipeThread) recipeThread = nil end
+        end
+    end,
+})
+
 
 Tab:CreateSection("XP Transfer")
 
@@ -1207,6 +1416,154 @@ Tab:CreateButton({
     end,
 })
 
+
+Tab:CreateSection("Auto Craft")
+-- ============================================================
+-- AUTO CRAFT (FIXED WITH DEBUG PRINTS)
+-- ============================================================
+
+local recipes = {
+    ["Crafty Slime"]     = { zone = 7,  result = "crafty",          rarities = {"1/21.5K", "1/13.9K", "1/7.77K"} },
+    ["Thorn Slime"]      = { zone = 9,  result = "thorn",           rarities = {"1/126K",  "1/86.1K", "1/35.9K"} },
+    ["Geode Slime"]      = { zone = 11, result = "geode",           rarities = {"1/1.26M", "1/861K",  "1/215K"}  },
+    ["SlimeSlimeSlime"]  = { zone = 13, result = "slimeslimeslime", rarities = {"1/10.7M", "1/10.7M", "1/10.7M"} },
+    ["Puffy Slime"]      = { zone = 15, result = "puffy",           rarities = {"1/17.9M", "1/39.1M", "1/89.7M"} },
+    ["Astro Slime"]      = { zone = 17, result = "astro",           rarities = {"1/478M",  "1/1.07B", "1/307M"}  },
+    ["Sunny Slime"]      = { zone = 19, result = "sunny",           rarities = {"1/2.77B", "1/4.39B", "1/1.72B"} },
+    ["Melly Slime"]      = { zone = 22, result = "melly",           rarities = {"1/15.3B", "1/50.1B", "1/113B"}  },
+    ["? Slime"]          = { zone = 27, result = "?",               rarities = {"1/673B",  "1/1.72T", "1/237B"}  },
+}
+
+local craftingRF     = getRemote("CraftingService")
+local selectedCraft  = nil
+local autoCraft      = false
+local craftThread    = nil
+
+local function getSlimeRarityForCraft(frame)
+    local btn = frame:FindFirstChild("SlimeButton")
+    if not btn then return nil end
+    local count = 0
+    for _, child in ipairs(btn:GetChildren()) do
+        if child:IsA("Frame") then
+            count += 1
+            if count == 2 then
+                local tl = child:FindFirstChildOfClass("TextLabel")
+                if tl then return tl.Text:gsub("%s+", "") end
+            end
+        end
+    end
+    return nil
+end
+
+local function getSlimeIdForCraft(frame)
+    return frame.Name:gsub("^InventorySlime_", "")
+end
+
+local function findIngredientsForCraft(rarities)
+    local scroll = player.PlayerGui.Root.Inventory.PageInventoryContent.SlimesPage.ScrollingFrame
+    local ids = {}
+    local usedFrames = {}
+
+    print("[AutoCraft] Looking for ingredients: " .. table.concat(rarities, ", "))
+
+    for _, target in ipairs(rarities) do
+        local found = false
+        for _, frame in ipairs(scroll:GetChildren()) do
+            if frame:IsA("Frame") and not usedFrames[frame.Name] then
+                local rarity = getSlimeRarityForCraft(frame)
+                if rarity == target then
+                    local id = getSlimeIdForCraft(frame)
+                    print("[AutoCraft] Found ingredient | Rarity: " .. rarity .. " | ID: " .. tostring(id))
+                    table.insert(ids, id)
+                    usedFrames[frame.Name] = true
+                    found = true
+                    break
+                end
+            end
+        end
+        if not found then
+            print("[AutoCraft] MISSING ingredient with rarity: " .. target)
+            return nil, target
+        end
+    end
+
+    return ids, nil
+end
+
+local craftDropdownOptions = {}
+for name, _ in pairs(recipes) do table.insert(craftDropdownOptions, name) end
+table.sort(craftDropdownOptions)
+
+Tab:CreateDropdown({
+    Name = "Select Craft",
+    Options = craftDropdownOptions,
+    CurrentOption = {},
+    MultipleOptions = false,
+    Flag = "CraftSelect",
+    Callback = function(Option)
+        selectedCraft = Option[1]
+        print("[AutoCraft] Selected recipe: " .. tostring(selectedCraft))
+    end,
+})
+
+Tab:CreateToggle({
+    Name = "Auto Craft",
+    CurrentValue = false,
+    Flag = "AutoCraft",
+    Callback = function(v)
+        autoCraft = v
+        if v then
+            craftThread = task.spawn(function()
+                while autoCraft do
+                    if not selectedCraft then
+                        print("[AutoCraft] No craft selected, waiting...")
+                        Rayfield:Notify({ Title = "Auto Craft", Content = "No craft selected!", Duration = 3, Image = 4483362458 })
+                        task.wait(2)
+                        continue
+                    end
+
+                    local recipe = recipes[selectedCraft]
+                    if not recipe then
+                        print("[AutoCraft] Recipe not found for: " .. tostring(selectedCraft))
+                        task.wait(1)
+                        continue
+                    end
+
+                    print("[AutoCraft] Attempting craft: " .. selectedCraft)
+                    print("[AutoCraft] Result ID: " .. tostring(recipe.result) .. " | Zone: " .. tostring(recipe.zone))
+                    print("[AutoCraft] Required rarities: " .. table.concat(recipe.rarities, ", "))
+
+                    local ids, missingRarity = findIngredientsForCraft(recipe.rarities)
+
+                    if ids then
+                        print("[AutoCraft] All ingredients found! IDs: " .. table.concat(ids, ", "))
+                        print("[AutoCraft] Firing remote -> requestCraftRecipe | result=" .. recipe.result .. " | ids=" .. table.concat(ids, ",") .. " | zone=" .. recipe.zone)
+
+                        local ok, response = pcall(function()
+                            return craftingRF:InvokeServer("requestCraftRecipe", recipe.result, ids, tonumber(recipe.zone))
+                        end)
+
+                        if ok then
+                            print("[AutoCraft] Remote fired successfully! Server response: " .. tostring(response))
+                            Rayfield:Notify({ Title = "Auto Craft ✅", Content = selectedCraft .. " crafted! Response: " .. tostring(response), Duration = 4, Image = 4483362458 })
+                        else
+                            print("[AutoCraft] Remote ERRORED: " .. tostring(response))
+                            Rayfield:Notify({ Title = "Auto Craft ❌", Content = "Remote error: " .. tostring(response), Duration = 4, Image = 4483362458 })
+                        end
+                    else
+                        print("[AutoCraft] Missing rarity: " .. tostring(missingRarity))
+                        Rayfield:Notify({ Title = "Auto Craft", Content = "Missing: " .. tostring(missingRarity), Duration = 3, Image = 4483362458 })
+                    end
+
+                    task.wait(1)
+                end
+            end)
+        else
+            if craftThread then task.cancel(craftThread) craftThread = nil end
+            print("[AutoCraft] Stopped.")
+        end
+    end,
+})
 -- ============================================================
 -- AUTO CLAIM INDEX
 -- ============================================================
@@ -1389,5 +1746,164 @@ Misc:CreateButton({
     Name = "Manual Server Hop",
     Callback = function() serverHop() end,
 })
+
+
+local speedBoostEnabled = false
+local speedBoostAmount  = 30
+
+MiscTab:CreateSection("Speed Boost")
+
+MiscTab:CreateToggle({
+    Name         = "Speed Boost",
+    CurrentValue = false,
+    Flag         = "SpeedBoost",
+    Callback     = function(v) speedBoostEnabled = v end,
+})
+
+MiscTab:CreateSlider({
+    Name         = "Boost Strength",
+    Range        = {1, 150},
+    Increment    = 1,
+    Suffix       = "",
+    CurrentValue = speedBoostAmount,
+    Flag         = "SpeedBoostAmount",
+    Callback     = function(v) speedBoostAmount = v end,
+})
+
+RunService.Heartbeat:Connect(function(dt)
+    if not speedBoostEnabled then return end
+    local c = lp.Character
+    if not c then return end
+    local hum = c:FindFirstChildOfClass("Humanoid")
+    if not hum or hum.Health <= 0 then return end
+    local dir = hum.MoveDirection
+    if dir.Magnitude == 0 then return end
+    c:TranslateBy(dir * speedBoostAmount * dt * 10)
+end)
+
+-- INFINITE JUMP
+local infiniteJump = false
+
+MiscTab:CreateSection("Infinite Jump")
+
+MiscTab:CreateToggle({
+    Name = "Infinite Jump",
+    CurrentValue = false,
+    Flag = "InfiniteJump",
+    Callback = function(v)
+        infiniteJump = v
+        getgenv().infiniteJump = v
+    end,
+})
+
+game:GetService("UserInputService").JumpRequest:Connect(function()
+    if getgenv().infiniteJump then
+        local char = player.Character
+        local hum = char and char:FindFirstChild("Humanoid")
+        if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
+    end
+end)
+
+-- NOCLIP
+local noclip = false
+local noclipConn = nil
+
+MiscTab:CreateSection("Noclip")
+
+MiscTab:CreateToggle({
+    Name = "Noclip",
+    CurrentValue = false,
+    Flag = "Noclip",
+    Callback = function(v)
+        noclip = v
+        if v then
+            noclipConn = RunService.Stepped:Connect(function()
+                if not noclip then noclipConn:Disconnect() noclipConn = nil return end
+                local char = player.Character
+                if not char then return end
+                for _, part in ipairs(char:GetDescendants()) do
+                    if part:IsA("BasePart") then part.CanCollide = false end
+                end
+            end)
+        else
+            if noclipConn then noclipConn:Disconnect() noclipConn = nil end
+            local char = player.Character
+            if char then
+                for _, part in ipairs(char:GetDescendants()) do
+                    if part:IsA("BasePart") then part.CanCollide = true end
+                end
+            end
+        end
+    end,
+})
+
+-- FLY
+local flying = false
+local flySpeed = 50
+local flyConn = nil
+local bodyVel = nil
+local bodyGyro = nil
+
+local uis = game:GetService("UserInputService")
+local cam = workspace.CurrentCamera
+
+MiscTab:CreateSection("Fly")
+
+MiscTab:CreateSlider({
+    Name = "Fly Speed",
+    Range = {10, 300},
+    Increment = 10,
+    Suffix = " studs",
+    CurrentValue = flySpeed,
+    Flag = "FlySpeed",
+    Callback = function(v) flySpeed = v end,
+})
+
+MiscTab:CreateToggle({
+    Name = "Fly",
+    CurrentValue = false,
+    Flag = "Fly",
+    Callback = function(v)
+        flying = v
+        local char = player.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        local hum = char and char:FindFirstChild("Humanoid")
+        if not hrp or not hum then return end
+
+        if v then
+            hum.PlatformStand = true
+
+            bodyVel = Instance.new("BodyVelocity")
+            bodyVel.Velocity = Vector3.zero
+            bodyVel.MaxForce = Vector3.new(1e6, 1e6, 1e6)
+            bodyVel.Parent = hrp
+
+            bodyGyro = Instance.new("BodyGyro")
+            bodyGyro.MaxTorque = Vector3.new(1e6, 1e6, 1e6)
+            bodyGyro.P = 1e4
+            bodyGyro.CFrame = hrp.CFrame
+            bodyGyro.Parent = hrp
+
+            flyConn = RunService.RenderStepped:Connect(function()
+                if not flying then return end
+                local dir = Vector3.zero
+                if uis:IsKeyDown(Enum.KeyCode.W) then dir = dir + cam.CFrame.LookVector end
+                if uis:IsKeyDown(Enum.KeyCode.S) then dir = dir - cam.CFrame.LookVector end
+                if uis:IsKeyDown(Enum.KeyCode.A) then dir = dir - cam.CFrame.RightVector end
+                if uis:IsKeyDown(Enum.KeyCode.D) then dir = dir + cam.CFrame.RightVector end
+                if uis:IsKeyDown(Enum.KeyCode.Space) then dir = dir + Vector3.new(0, 1, 0) end
+                if uis:IsKeyDown(Enum.KeyCode.LeftShift) then dir = dir - Vector3.new(0, 1, 0) end
+                if bodyVel then bodyVel.Velocity = dir * flySpeed end
+                if bodyGyro then bodyGyro.CFrame = cam.CFrame end
+            end)
+        else
+            if flyConn then flyConn:Disconnect() flyConn = nil end
+            if bodyVel then bodyVel:Destroy() bodyVel = nil end
+            if bodyGyro then bodyGyro:Destroy() bodyGyro = nil end
+            hum.PlatformStand = false
+        end
+    end,
+})
+
 
 Rayfield:LoadConfiguration()
